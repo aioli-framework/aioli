@@ -1,3 +1,5 @@
+import logging
+
 import click
 
 from uvicorn import run as run_server, importer
@@ -15,13 +17,15 @@ def cli():
 @click.option("--workers", default=1)
 @click.option("--debug", default=True)
 @click.argument("app_path")
-def dev_server(app_path, host, port, **kwargs):
+def dev_server(app_path, host, port, debug, **kwargs):
     config = importer.import_from_string(app_path).config
+
     run_server(
         app_path,
         host=host or config["dev_host"],
         port=port or config["dev_port"],
         loop="uvloop",
+        log_level="debug" if debug else "info",
         **kwargs
     )
 

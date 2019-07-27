@@ -7,9 +7,10 @@ import traceback
 from json.decoder import JSONDecodeError
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
+
 from marshmallow.exceptions import ValidationError
 
-from aioli.exceptions import HTTPException, AioliException
+from aioli.exceptions import HTTPException, AioliException, BootstrapException
 from aioli.log import LOGGING_CONFIG_DEFAULTS
 from aioli.package import Package
 
@@ -47,9 +48,9 @@ class ImportRegistry:
     imported = []
     log = logging.getLogger("aioli.pkg")
 
-    def __init__(self, modules, conf_full):
-        self._conf_full = conf_full
-        self._modules = set(modules)
+    def __init__(self, app, config):
+        self._config = config
+        self._app = app
 
     def _get_components(self, comp_type, pkg_name=None):
         comp_type = ComponentType(comp_type).name
@@ -67,27 +68,33 @@ class ImportRegistry:
     def get_services(self, pkg_name=None):
         return [(svc.__class__, svc) for svc in self._get_components("service", pkg_name)]
 
-    async def attach_to(self, app):
-        for module in self._modules:
-            if not hasattr(module, "export"):
-                raise Exception(f"Missing export member of class {Package} in {module}")
+    def register(self, registerables):
+        registerables = set(registerables)
 
-            package = module.export
+        for registerable in registerables:
+            if isinstance(registerable, Package):
+                package = registerable
+            elif hasattr(registerable, "export"):
+                package = registerable.export
+            else:
+                raise BootstrapException(
+                    f"Expected an Aioli-type Python Package, or just an aioli.Package, got: {registerable}"
+                )
+
+            self.log.debug(f"Registering Package: {package}")
 
             self.log.info(f"Attaching {package.name}/{package.version}")
 
-            if not isinstance(package, Package):
-                raise Exception(f"Invalid package type {package}: must be of type {Package}")
+            config = self._config.get(package.name, {})
 
-            config = self._conf_full.get(package.name, {})
+            package.register(self._app, config)
 
-            await package.register(app, config)
+            self.imported.append(package)
 
-            self.imported.append(module)
-
-        for module in self.imported:
-            await module.export.attach_controllers()
-            await module.export.attach_services()
+    async def attach(self):
+        for pkg in self.imported:
+            await pkg.attach_controllers()
+            await pkg.attach_services()
 
 
 class Application(Starlette):
@@ -102,28 +109,30 @@ class Application(Starlette):
     """
 
     log = logging.getLogger("aioli.core")
-    packages = None
     __state = {}
 
     def __init__(self, packages, **kwargs):
         if not isinstance(packages, list):
-            raise Exception(
+            raise BootstrapException(
                 f"aioli.Application expects an iterable of Packages, got: {type(packages)}"
             )
 
-        config = kwargs.pop("config", {})
+        self.packages = packages
 
-        self.registry = ImportRegistry(packages, config)
+        config = kwargs.pop("config", {})
 
         try:
             self.config = ApplicationConfigSchema().load(config.get("aioli_core", {}))
         except ValueError:
-            raise Exception("Application `config` must be a collection")
+            raise BootstrapException("Application `config` must be a collection")
         except ValidationError as e:
-            raise Exception(f"Configuration validation error: {e.messages}")
+            raise BootstrapException(f"Configuration validation error: {e.messages}")
 
         for name, logger in LOGGING_CONFIG_DEFAULTS['loggers'].items():
             self.log_level = logger['level'] = 'DEBUG' if self.config.get('debug') else 'INFO'
+
+        self.registry = ImportRegistry(self, config)
+        self.registry.register(self.packages)
 
         logging.config.dictConfig(LOGGING_CONFIG_DEFAULTS)
 
@@ -139,7 +148,6 @@ class Application(Starlette):
         self.add_exception_handler(HTTPException, http_error)
         self.add_exception_handler(ValidationError, validation_error)
         self.add_exception_handler(JSONDecodeError, decode_error)
-        self.add_exception_handler(Exception, server_error)
 
         # Middleware
         self.add_middleware(CORSMiddleware, allow_origins=self.config["allow_origins"])
@@ -154,15 +162,12 @@ class Application(Starlette):
         return super(Application, self).add_exception_handler(exception, handler)
 
     async def _startup(self):
-        try:
-            self.log.info("Commencing countdown, engines on")
+        self.log.info("Commencing countdown, engines on")
 
-            await self.registry.attach_to(self)
-            self.log.info(f"Loaded {len(self.registry.imported)} packages ~ Ready for action!")
-        except Exception as e:
-            self.log.critical(traceback.format_exc())
-            raise e
+        await self.registry.attach()
+
+        self.log.info(f"Loaded {len(self.registry.imported)} packages ~ Ready for action!")
 
     async def _shutdown(self):
-        for mod, pkg in self.packages.attached:
+        for pkg in self.registry.imported:
             await pkg.detach_services()

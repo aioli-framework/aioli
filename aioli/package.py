@@ -2,7 +2,9 @@ import logging
 import re
 
 from marshmallow.exceptions import ValidationError
-from aioli.config import PackageConfigSchema
+
+from .config import PackageConfigSchema
+from .exceptions import BootstrapException
 
 
 NAME_REGEX = re.compile(r"^[a-zA-Z0-9_]*$")
@@ -74,7 +76,7 @@ class Package:
         if config is None:
             self.conf_schema = PackageConfigSchema
         elif not issubclass(config, PackageConfigSchema):
-            raise Exception(
+            raise BootstrapException(
                 f"Invalid config type in {name}: {config}. Must be subclass of {PackageConfigSchema}, or None"
             )
         else:
@@ -90,31 +92,30 @@ class Package:
         self._controllers = set(controllers or [])
 
     async def detach_services(self):
-        for obj in self.services:
-            await obj.on_shutdown()
+        for svc in self._services:
+            await svc.on_shutdown()
 
     async def attach_services(self):
-        for obj in self.services:
-            await obj.on_startup()
+        for svc in self._services:
+            await svc.on_startup()
 
     async def attach_controllers(self):
-        for obj in self.controllers:
-            await obj.on_startup()
+        for ctrl in self._controllers:
+            ctrl.register_routes(self.app.config["api_base"])
+            await ctrl.on_startup()
 
-    async def register(self, app, config):
-        self.app = app
-        self.log = logging.getLogger(f"aioli.pkg.{self.name}")
-        self.path = config.get("path", f"/{self.name}")
-
+    def register(self, app, config):
         try:
             self.config = self.conf_schema(self.name).load(config)
         except ValidationError as e:
-            raise Exception(f"Package {self.name} failed configuration validation: {e.messages}")
+            raise BootstrapException(f"Package {self.name} failed configuration validation: {e.messages}")
 
-        if self._controllers:
-            self.controllers = [ctrl_cls(self) for ctrl_cls in self._controllers]
+        self.app = app
+        self.log = logging.getLogger(f"aioli.pkg.{self.name}")
+        self.path = self.config.get("path", f"/{self.name}")
 
-        self.services = [svc_cls(self) for svc_cls in self._services]
+        self._services = [svc_cls(self) for svc_cls in self._services]
+        self._controllers = [ctrl_cls(self) for ctrl_cls in self._controllers]
 
     @property
     def path(self):
@@ -126,7 +127,7 @@ class Package:
             return
 
         if not PATH_REGEX.match(value):
-            raise Exception(f"Invalid Path provided to Package {self.name}")
+            raise BootstrapException(f"Invalid Path provided to Package {self.name}")
 
         self.__path = value
 
@@ -137,7 +138,7 @@ class Package:
     @version.setter
     def version(self, value):
         if not VERSION_REGEX.match(value):
-            raise Exception(f"Package {self.name} version is not a valid SemVer string")
+            raise BootstrapException(f"The version provided to {self.name} is not a valid Semantic Versioning string")
 
         self.__version = value
 
@@ -148,6 +149,8 @@ class Package:
     @name.setter
     def name(self, value):
         if not NAME_REGEX.match(value):
-            raise Exception(f"Invalid identifier '{value}' - may only contain alphanumeric and underscore characters.")
+            raise BootstrapException(
+                f"Invalid identifier '{value}' - may only contain alphanumeric and underscore characters."
+            )
 
         self.__name = value

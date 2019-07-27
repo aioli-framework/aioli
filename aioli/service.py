@@ -1,4 +1,5 @@
 from .component import Component, ComponentMeta
+from .exceptions import BootstrapException
 
 
 class BaseService(Component, metaclass=ComponentMeta):
@@ -22,7 +23,7 @@ class BaseService(Component, metaclass=ComponentMeta):
         )
 
         if svc not in self._instances.keys():
-            raise Exception(f"Cannot use unregistered Service: {svc.__name__}")
+            raise BootstrapException(f"Cannot use unregistered Service: {svc.__name__}")
 
     def connect(self, svc):
         """Reuses existing instance of the given Service class, in the context of

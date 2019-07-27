@@ -1,9 +1,8 @@
 from starlette.exceptions import HTTPException
 
 
-class InternalError(HTTPException):
-    def __init__(self, *args, **kwargs):
-        super(InternalError, self).__init__(*args, **kwargs)
+class BootstrapException(Exception):
+    pass
 
 
 class AioliException(HTTPException):

@@ -3,6 +3,7 @@ import re
 from starlette.endpoints import WebSocketEndpoint
 
 from aioli.component import Component, ComponentMeta
+from aioli.exceptions import BootstrapException
 
 from .registry import handlers
 
@@ -16,34 +17,7 @@ def format_path(*parts):
     return re.sub(r"/+", "/", path.rstrip("/"))
 
 
-class HttpControllerMeta(ComponentMeta):
-    def __call__(cls, pkg, *args, **kwargs):
-        ctrl = super(HttpControllerMeta, cls).__call__(pkg, *args, **kwargs)
-        app = pkg.app
-
-        for func, handler in ctrl.handlers:
-            handler_addr = hex(id(func))
-            handler_name = f"{ctrl.__class__.__name__}.{handler.name}"
-
-            path_full = format_path(app.config["api_base"], pkg.path, handler.path)
-
-            if not hasattr(ctrl, "pkg"):
-                raise Exception(f"Superclass of {ctrl} was never created")
-
-            ctrl.log.info(
-                f"Registering Route: {path_full} [{handler.method}] => "
-                f"{handler.name} [{handler_addr}]"
-            )
-
-            methods = [handler.method]
-
-            app.add_route(path_full, func, methods, handler_name)
-            handler.path_full = path_full
-
-        return ctrl
-
-
-class BaseHttpController(Component, metaclass=HttpControllerMeta):
+class BaseHttpController(Component):
     """HTTP API Controller
 
     :param pkg: Attach to this package
@@ -55,6 +29,26 @@ class BaseHttpController(Component, metaclass=HttpControllerMeta):
 
     async def on_request(self, *args):
         """Called on request arrival for this Controller"""
+
+    def register_routes(self, api_base):
+        for func, handler in self.handlers:
+            handler_addr = hex(id(func))
+            handler_name = f"{self.__class__.__name__}.{handler.name}"
+
+            path_full = format_path(api_base, self.pkg.path, handler.path)
+
+            if not hasattr(self, "pkg"):
+                raise BootstrapException(f"Superclass of {self} was never created")
+
+            self.log.info(
+                f"Registering Route: {path_full} [{handler.method}] => "
+                f"{handler.name} [{handler_addr}]"
+            )
+
+            methods = [handler.method]
+
+            self.pkg.app.add_route(path_full, func, methods, handler_name)
+            handler.path_full = path_full
 
     @property
     def handlers(self):
