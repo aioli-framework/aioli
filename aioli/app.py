@@ -113,7 +113,7 @@ class Application(Starlette):
 
     def __init__(self, packages, **kwargs):
         if not isinstance(packages, list):
-            raise Exception(
+            raise BootstrapException(
                 f"aioli.Application expects an iterable of Packages, got: {type(packages)}"
             )
 
@@ -124,9 +124,9 @@ class Application(Starlette):
         try:
             self.config = ApplicationConfigSchema().load(config.get("aioli_core", {}))
         except ValueError:
-            raise Exception("Application `config` must be a collection")
+            raise BootstrapException("Application `config` must be a collection")
         except ValidationError as e:
-            raise Exception(f"Configuration validation error: {e.messages}")
+            raise BootstrapException(f"Configuration validation error: {e.messages}")
 
         for name, logger in LOGGING_CONFIG_DEFAULTS['loggers'].items():
             self.log_level = logger['level'] = 'DEBUG' if self.config.get('debug') else 'INFO'
@@ -148,7 +148,6 @@ class Application(Starlette):
         self.add_exception_handler(HTTPException, http_error)
         self.add_exception_handler(ValidationError, validation_error)
         self.add_exception_handler(JSONDecodeError, decode_error)
-        self.add_exception_handler(Exception, server_error)
 
         # Middleware
         self.add_middleware(CORSMiddleware, allow_origins=self.config["allow_origins"])
@@ -163,14 +162,11 @@ class Application(Starlette):
         return super(Application, self).add_exception_handler(exception, handler)
 
     async def _startup(self):
-        try:
-            self.log.info("Commencing countdown, engines on")
+        self.log.info("Commencing countdown, engines on")
 
-            await self.registry.attach()
-            self.log.info(f"Loaded {len(self.registry.imported)} packages ~ Ready for action!")
-        except Exception as e:
-            self.log.critical(traceback.format_exc())
-            raise e
+        await self.registry.attach()
+
+        self.log.info(f"Loaded {len(self.registry.imported)} packages ~ Ready for action!")
 
     async def _shutdown(self):
         for pkg in self.registry.imported:
