@@ -1,33 +1,45 @@
 import pytest
 
-
-class MockRequest:
-    def __init__(self, **kwargs):
-        self.method = kwargs.pop("method", "GET")
-        self.match_info = kwargs.pop("match_info", {})
-        self.json = kwargs.pop("json", {})
-        self.args = kwargs.pop("args", {})
+from aioli import Package, Application
 
 
 @pytest.fixture
-def pkg_make():
-    def _loaded(*args, **kwargs):
-        pkg = Package(
+def pkg():
+    def _loaded(*args, version="0.1.0", name="pkg_test", description="Test", **kwargs):
+        export = Package(
             *args,
-            **kwargs,
-            name="test1-name",
-            description="test1-description"
+            version=version,
+            name=name,
+            description=description,
+            **kwargs
         )
-        pkg.path = "/pkg-test-1"
-        return pkg
+
+        return export
 
     return _loaded
 
 
 @pytest.fixture
-def mock_request():
-    def _loaded(**kwargs):
-        return "dummy", MockRequest(**kwargs)
+def pkg_registered(logger):
+    def _loaded(path, *args, version="0.1.0", name="pkg_test", description="Test", **kwargs):
+        export = Package(
+            *args,
+            version=version,
+            name=name,
+            description=description,
+            **kwargs
+        )
+
+        app = Application(
+            packages=[export],
+            config={
+                name: dict(
+                    path=path
+                )
+            }
+        )
+
+        return app.registry.imported[-1]
 
     return _loaded
 
@@ -35,4 +47,4 @@ def mock_request():
 @pytest.fixture
 def logger():
     import logging
-    return logging.getLogger("jet-test")
+    return logging.getLogger("aioli-test")

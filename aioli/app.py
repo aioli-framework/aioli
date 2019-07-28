@@ -2,7 +2,6 @@ from enum import Enum
 
 import logging
 import logging.config
-import traceback
 
 from json.decoder import JSONDecodeError
 from starlette.applications import Starlette
@@ -78,7 +77,7 @@ class ImportRegistry:
                 package = registerable.export
             else:
                 raise BootstrapException(
-                    f"Expected an Aioli-type Python Package, or just an aioli.Package, got: {registerable}"
+                    f"Expected an Aioli-type Python Package, or an aioli.Package, got: {registerable}"
                 )
 
             self.log.debug(f"Registering Package: {package}")
@@ -86,7 +85,6 @@ class ImportRegistry:
             self.log.info(f"Attaching {package.name}/{package.version}")
 
             config = self._config.get(package.name, {})
-
             package.register(self._app, config)
 
             self.imported.append(package)
@@ -117,8 +115,6 @@ class Application(Starlette):
                 f"aioli.Application expects an iterable of Packages, got: {type(packages)}"
             )
 
-        self.packages = packages
-
         config = kwargs.pop("config", {})
 
         try:
@@ -132,7 +128,7 @@ class Application(Starlette):
             self.log_level = logger['level'] = 'DEBUG' if self.config.get('debug') else 'INFO'
 
         self.registry = ImportRegistry(self, config)
-        self.registry.register(self.packages)
+        self.registry.register(packages)
 
         logging.config.dictConfig(LOGGING_CONFIG_DEFAULTS)
 

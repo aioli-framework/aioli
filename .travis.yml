@@ -1,13 +1,14 @@
+dist: "xenial"
 language: python
 python:
     - "3.6"
     - "3.7"
-dist: "xenial"
-script:
-    - python -m pytest --cov=./
+    - "3.8-dev"
+before_install:
+    - pip install poetry
 install:
-    - pip install pipenv codecov pytest-cov
-    - pipenv lock
-    - pipenv sync
+    - poetry install
+script:
+    - poetry run python -m pytest --cov=./
 after_success:
     - codecov

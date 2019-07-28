@@ -3,11 +3,13 @@ import re
 
 from marshmallow.exceptions import ValidationError
 
+from .controller import BaseHttpController, BaseWebSocketController
+from .service import BaseService
 from .config import PackageConfigSchema
-from .exceptions import BootstrapException
+from .exceptions import BootstrapException, InvalidPackagePath, InvalidPackageName, InvalidPackageVersion
 
 
-NAME_REGEX = re.compile(r"^[a-zA-Z0-9_]*$")
+NAME_REGEX = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)*$")
 PATH_REGEX = re.compile(r"^/[a-zA-Z0-9-_]*$")
 
 # Semantic version regex
@@ -49,16 +51,12 @@ class Package:
         def __getitem__(self, item):
             return self.__state.get(item)
 
-    __name = None
-    __version = None
-    __path = None
-
     app = None
     config = {}
     log: logging.Logger
 
-    services = []
-    controllers = []
+    services = None
+    controllers = None
 
     def __init__(
         self,
@@ -69,38 +67,65 @@ class Package:
         services=None,
         config=None,
     ):
-        assert not controllers or isinstance(controllers, list), f"{name} controllers must be a list or None"
-        assert not services or isinstance(services, list), f"{name} services must be a list "
-        assert name not in ["aioli", "aioli_core"], f"Name {name} is reserved and cannot be used"
+        if controllers is not None and not isinstance(controllers, list):
+            raise BootstrapException(f"{name} controllers must be a list or None")
+        else:
+            self._controllers = set(controllers or [])
+
+        if services is not None and not isinstance(services, list):
+            raise BootstrapException(f"{name} controllers must be a list or None")
+        else:
+            self._services = set(services or [])
+
+        controllers_valid = [
+            issubclass(c, BaseHttpController) or issubclass(c, BaseWebSocketController)
+            for c in self._controllers
+        ]
+
+        if not all(controllers_valid):
+            raise BootstrapException(f"{name} controllers must be a list of "
+                                     f"BaseWebSocketController or BaseWebSocketController controllers")
+
+        services_valid = [issubclass(c, BaseService) for c in self._services]
+
+        if not all(services_valid):
+            raise BootstrapException(f"{name} services must be a list of BaseService services")
+
+        if name in ["aioli", "aioli_core"]:
+            raise InvalidPackageName(f"Name {name} is reserved and cannot be used")
 
         if config is None:
             self.conf_schema = PackageConfigSchema
-        elif not issubclass(config, PackageConfigSchema):
+        elif isinstance(config, type) and issubclass(config, PackageConfigSchema):
+            self.conf_schema = config
+        else:
             raise BootstrapException(
                 f"Invalid config type in {name}: {config}. Must be subclass of {PackageConfigSchema}, or None"
             )
-        else:
-            self.conf_schema = config
 
         self.state = Package.State()
 
+        self.__name = self.__path = self.__version = None
+
         self.name = name
-        self.description = description
         self.version = version
 
-        self._services = set(services or [])
-        self._controllers = set(controllers or [])
+        if len(description) > 256:
+            raise BootstrapException(f"The description for Package {name} is invalid, "
+                                     f"it must between 5 and 256 characters long")
+        else:
+            self.description = description
 
     async def detach_services(self):
-        for svc in self._services:
+        for svc in self.services:
             await svc.on_shutdown()
 
     async def attach_services(self):
-        for svc in self._services:
+        for svc in self.services:
             await svc.on_startup()
 
     async def attach_controllers(self):
-        for ctrl in self._controllers:
+        for ctrl in self.controllers:
             ctrl.register_routes(self.app.config["api_base"])
             await ctrl.on_startup()
 
@@ -114,8 +139,8 @@ class Package:
         self.log = logging.getLogger(f"aioli.pkg.{self.name}")
         self.path = self.config.get("path", f"/{self.name}")
 
-        self._services = [svc_cls(self) for svc_cls in self._services]
-        self._controllers = [ctrl_cls(self) for ctrl_cls in self._controllers]
+        self.services = [svc_cls(self) for svc_cls in self._services]
+        self.controllers = [ctrl_cls(self) for ctrl_cls in self._controllers]
 
     @property
     def path(self):
@@ -123,11 +148,11 @@ class Package:
 
     @path.setter
     def path(self, value):
-        if not self._controllers:
+        if not value:
             return
 
         if not PATH_REGEX.match(value):
-            raise BootstrapException(f"Invalid Path provided to Package {self.name}")
+            raise InvalidPackagePath(f"Invalid path was provided to Package {self.name}")
 
         self.__path = value
 
@@ -138,7 +163,7 @@ class Package:
     @version.setter
     def version(self, value):
         if not VERSION_REGEX.match(value):
-            raise BootstrapException(f"The version provided to {self.name} is not a valid Semantic Versioning string")
+            raise InvalidPackageVersion(f"The version provided to {self.name} is not a valid Semantic Versioning string")
 
         self.__version = value
 
@@ -148,9 +173,11 @@ class Package:
 
     @name.setter
     def name(self, value):
-        if not NAME_REGEX.match(value):
-            raise BootstrapException(
-                f"Invalid identifier '{value}' - may only contain alphanumeric and underscore characters."
+        if not NAME_REGEX.match(value) or len(value) > 42:
+            raise InvalidPackageName(
+                f"The Package name {value} is invalid, "
+                f"it may contain up to 42 lowercase alphanumeric and underscore characters."
             )
 
         self.__name = value
+

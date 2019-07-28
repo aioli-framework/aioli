@@ -17,7 +17,7 @@ def format_path(*parts):
     return re.sub(r"/+", "/", path.rstrip("/"))
 
 
-class BaseHttpController(Component):
+class BaseHttpController(Component, metaclass=ComponentMeta):
     """HTTP API Controller
 
     :param pkg: Attach to this package
