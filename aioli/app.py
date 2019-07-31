@@ -1,7 +1,10 @@
-from enum import Enum
-
+import os
+import configparser
 import logging
 import logging.config
+
+from importlib_metadata import metadata
+from enum import Enum
 
 from json.decoder import JSONDecodeError
 from starlette.applications import Starlette
@@ -11,7 +14,7 @@ from marshmallow.exceptions import ValidationError
 
 from aioli.exceptions import HTTPException, AioliException, BootstrapException
 from aioli.log import LOGGING_CONFIG_DEFAULTS
-from aioli.package import Package
+from aioli.package import Package, PackageMetadata
 
 from .config import ApplicationConfigSchema
 from .utils import jsonify
@@ -80,11 +83,32 @@ class ImportRegistry:
                     f"Expected an Aioli-type Python Package, or an aioli.Package, got: {registerable}"
                 )
 
+            if package.auto_meta and hasattr(registerable, "__path__"):
+                pyproject_path = os.path.join(registerable.__path__[0], "..", "pyproject.toml")
+
+                if os.path.exists(pyproject_path):
+                    parser = configparser.ConfigParser()
+                    parser.read(pyproject_path)
+                    pyproject = parser["tool.poetry"]
+                    meta = {k: v.strip('"') for k, v in pyproject.items() if k in ["name", "description", "version"]}
+                elif hasattr(registerable, "__name__"):
+                    dist = dict(metadata(registerable.__name__))
+                    meta = dict(
+                        name=dist.get("Name"),
+                        version=dist.get("Version"),
+                        description=dist.get("Summary")
+                    )
+                else:
+                    raise BootstrapException(
+                        f"Unable to find metadata for {registerable}"
+                    )
+
+                package.meta = PackageMetadata().load(meta)
+
             self.log.debug(f"Registering Package: {package}")
+            self.log.info("Attaching {name}/{version}".format(**package.meta))
 
-            self.log.info(f"Attaching {package.name}/{package.version}")
-
-            config = self._config.get(package.name, {})
+            config = self._config.get(package.meta["name"], {})
             package.register(self._app, config)
 
             self.imported.append(package)
