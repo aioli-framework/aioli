@@ -35,13 +35,13 @@ class BaseHttpController(Component, metaclass=ComponentMeta):
             handler_addr = hex(id(func))
             handler_name = f"{self.__class__.__name__}.{handler.name}"
 
-            path_full = format_path(api_base, self.pkg.path, handler.path)
+            path_full = format_path(api_base, self.config["path"], handler.path)
 
             if not hasattr(self, "pkg"):
                 raise BootstrapException(f"Superclass of {self} was never created")
 
             self.log.info(
-                f"Registering Route: {path_full} [{handler.method}] => "
+                f"Adding Route: {path_full} [{handler.method}] => "
                 f"{handler.name} [{handler_addr}]"
             )
 

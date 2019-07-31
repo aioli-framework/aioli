@@ -73,7 +73,6 @@ class Package:
             return self.__state.get(item)
 
     app = None
-    path = None
     config = {}
     log: logging.Logger
 
@@ -110,39 +109,29 @@ class Package:
 
         self.state = Package.State()
 
-    async def detach_services(self):
-        for svc in self.services:
-            await svc.on_shutdown()
-
-    async def attach_services(self):
-        for svc in self.services:
-            await svc.on_startup()
-
-    async def attach_controllers(self):
-        for ctrl in self.controllers:
-            ctrl.register_routes(self.app.config["api_base"])
-            await ctrl.on_startup()
-
-    # @TODO - Create common registration method
     def _register_services(self, pkg_name):
         registered = []
 
-        if not self.__services and not isinstance(self.__services, list):
+        if not self.__services:
+            self.log.info("No Services to register")
+        elif not isinstance(self.__services, list):
             raise BootstrapException(f"{pkg_name} services must be a list or None")
 
         for svc in self.__services:
             if not issubclass(svc, BaseService):
                 raise BootstrapException(f"{pkg_name} services must be a list of BaseService services")
 
-            registered.append(svc(self))
+            obj = svc(self)
+            registered.append(obj)
 
-        self.services = set(registered)
+        return registered
 
-    # @TODO - Create common registration method
     def _register_controllers(self, pkg_name):
         registered = []
 
-        if not self.__controllers and not isinstance(self.__controllers, list):
+        if not self.__controllers:
+            self.log.info("No Controllers to register")
+        elif not isinstance(self.__controllers, list):
             raise BootstrapException(f"{pkg_name} controllers must be a list or None")
 
         for ctrl in self.__controllers:
@@ -150,9 +139,18 @@ class Package:
                 raise BootstrapException(f"{pkg_name} controllers must be a list of "
                                          f"{BaseHttpController} or {BaseWebSocketController} controllers")
 
-            registered.append(ctrl(self))
+            obj = ctrl(self)
+            obj.register_routes(self.app.config["api_base"])
+            registered.append(obj)
 
-        self.controllers = set(registered)
+        return registered
+
+    async def call_startup_handlers(self):
+        for svc in self.services:
+            await svc.on_startup()
+
+        for ctrl in self.controllers:
+            await ctrl.on_startup()
 
     def register(self, app, config):
         name = self.meta["name"]
@@ -161,9 +159,7 @@ class Package:
         if name in ["aioli", "aioli_core"]:
             raise InvalidPackageName(f"Name {name} is reserved and cannot be used")
 
-        if re.match(r"^/[a-zA-Z0-9-_]*$", path):
-            self.path = path
-        else:
+        if not re.match(r"^/[a-zA-Z0-9-_]*$", path):
             raise InvalidPackagePath(f"Invalid path was provided to Package {name}")
 
         self.app = app
@@ -174,5 +170,5 @@ class Package:
         except ValidationError as e:
             raise BootstrapException(f"Package {name} failed configuration validation: {e.messages}")
 
-        self._register_services(name)
-        self._register_controllers(name)
+        self.services = self._register_services(name)
+        self.controllers = self._register_controllers(name)

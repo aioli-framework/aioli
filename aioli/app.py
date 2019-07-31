@@ -70,7 +70,7 @@ class ImportRegistry:
     def get_services(self, pkg_name=None):
         return [(svc.__class__, svc) for svc in self._get_components("service", pkg_name)]
 
-    def register(self, registerables):
+    def register_packages(self, registerables):
         registerables = set(registerables)
 
         for registerable in registerables:
@@ -99,13 +99,10 @@ class ImportRegistry:
                         description=dist.get("Summary")
                     )
                 else:
-                    raise BootstrapException(
-                        f"Unable to find metadata for {registerable}"
-                    )
+                    raise BootstrapException(f"Unable to find metadata for {registerable}")
 
                 package.meta = PackageMetadata().load(meta)
 
-            self.log.debug(f"Registering Package: {package}")
             self.log.info("Attaching {name}/{version}".format(**package.meta))
 
             config = self._config.get(package.meta["name"], {})
@@ -113,10 +110,20 @@ class ImportRegistry:
 
             self.imported.append(package)
 
-    async def attach(self):
-        for pkg in self.imported:
-            await pkg.attach_controllers()
-            await pkg.attach_services()
+    async def call_startup_handlers(self):
+        total = failed = 0
+
+        for package in self.imported:
+            total += 1
+
+            try:
+                await package.call_startup_handlers()
+            except Exception:
+                failed += 1
+                pkg_name = package.meta['name']
+                self.log.exception(f"When calling startup hooks for {pkg_name}:")
+
+        return total, failed
 
 
 class Application(Starlette):
@@ -140,6 +147,7 @@ class Application(Starlette):
             )
 
         config = kwargs.pop("config", {})
+        self.__packages = packages
 
         try:
             self.config = ApplicationConfigSchema().load(config.get("aioli_core", {}))
@@ -151,17 +159,12 @@ class Application(Starlette):
         for name, logger in LOGGING_CONFIG_DEFAULTS['loggers'].items():
             self.log_level = logger['level'] = 'DEBUG' if self.config.get('debug') else 'INFO'
 
-        self.registry = ImportRegistry(self, config)
-        self.registry.register(packages)
-
         logging.config.dictConfig(LOGGING_CONFIG_DEFAULTS)
 
-        # Apply known settings from environment or provided `config`
-        super(Application, self).__init__(**kwargs)
+        self.registry = ImportRegistry(self, config)
 
-        # Lifespan handlers
-        self.router.lifespan.add_event_handler("startup", self._startup)
-        self.router.lifespan.add_event_handler("shutdown", self._shutdown)
+        # Apply known settings from environment or provided `config`
+        super(Application, self).__init__(debug=self.config["debug"], **kwargs)
 
         # Error handlers
         self.add_exception_handler(AioliException, http_error)
@@ -171,6 +174,10 @@ class Application(Starlette):
 
         # Middleware
         self.add_middleware(CORSMiddleware, allow_origins=self.config["allow_origins"])
+
+        # Lifespan handlers
+        self.router.lifespan.add_event_handler("startup", self._startup)
+        self.router.lifespan.add_event_handler("shutdown", self._shutdown)
 
     def add_exception_handler(self, exception, handler):
         """Add a new exception handler
@@ -184,9 +191,16 @@ class Application(Starlette):
     async def _startup(self):
         self.log.info("Commencing countdown, engines on")
 
-        await self.registry.attach()
+        self.registry.register_packages(self.__packages)
 
-        self.log.info(f"Loaded {len(self.registry.imported)} packages ~ Ready for action!")
+        self.log.debug("## Calling startup handlers ##")
+
+        total, failed = await self.registry.call_startup_handlers()
+
+        if failed > 0:
+            self.log.warning(f"Application degraded")
+        else:
+            self.log.info(f"{total} Packages loaded ~ Ready for action!")
 
     async def _shutdown(self):
         for pkg in self.registry.imported:

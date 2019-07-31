@@ -17,12 +17,12 @@ class BaseService(Component, metaclass=ComponentMeta):
     _instances = {}
 
     def _validate_import(self, svc):
-        assert issubclass(svc, BaseService), (
-            f"{svc.__name__} passed to {self.__class__.__name__}.use_service is "
-            f"not a subclass of aioli.{BaseService.__name__}"
-        )
-
-        if svc not in self._instances.keys():
+        if not issubclass(svc, BaseService):
+            raise BootstrapException(
+                f"{svc.__name__} passed to {self.__class__.__name__}.use_service is "
+                f"not a subclass of aioli.{BaseService.__name__}"
+            )
+        elif svc not in self._instances.keys():
             raise BootstrapException(f"Cannot use unregistered Service: {svc.__name__}")
 
     def connect(self, svc):
