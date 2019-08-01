@@ -209,4 +209,4 @@ def test_description_valid(pkg):
 
 def test_description_invalid(pkg):
     with pytest.raises(InvalidPackageDescription):
-        assert pkg(description="a" * 257)
+        pkg(description="a" * 257)

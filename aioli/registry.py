@@ -79,7 +79,7 @@ class ImportRegistry:
                 package.meta = PackageMetadata().load(meta)
             except BootstrapException as e:
                 self.log.exception(e)
-                continue
+                raise
 
             self.log.info("Attaching {name}/{version}".format(**package.meta))
 
