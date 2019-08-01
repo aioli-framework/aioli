@@ -1,3 +1,4 @@
 starlette
 marshmallow
+importlib_metadata
 ujson

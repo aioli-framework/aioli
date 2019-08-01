@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aioli"
-version = "0.4.1"
+version = "0.4.2"
 description = "Non-blocking Web API Framework and Toolkit"
 authors = ["Robert Wikman <rbw@vault13.org>"]
 license = "MIT"
