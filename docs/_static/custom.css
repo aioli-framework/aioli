@@ -15,10 +15,6 @@ div.body {
     max-width: 1024px !important;
 }
 
-.caption {
-    /*font-style: italic;*/
-}
-
 p.logo {
     border-bottom: 1px dotted #d0d0d0;
 }

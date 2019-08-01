@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aioli"
-version = "0.4.0"
+version = "0.4.1"
 description = "Non-blocking Web API Framework and Toolkit"
 authors = ["Robert Wikman <rbw@vault13.org>"]
 license = "MIT"
@@ -9,13 +9,13 @@ homepage = "https://github.com/aioli-framework/aioli"
 
 [tool.poetry.dependencies]
 python = "^3.6"
+importlib_metadata = "^0.19"
 starlette = "^0.12.0b3"
 uvloop = "^0.12.1"
 uvicorn = "^0.6.1"
 gunicorn = "^19.9.0"
 marshmallow = "^3.0.0rc3"
 ujson = "^1.35"
-
 
 [tool.poetry.dev-dependencies]
 twine = "^1.13"
