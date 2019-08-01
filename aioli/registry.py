@@ -66,7 +66,7 @@ class ImportRegistry:
                 elif hasattr(registerable, "__name__"):  # Meta from dist
                     dist = dict(metadata(registerable.__name__))
                     meta = dict(
-                        name=dist.get("Name"),
+                        name=dist.get("Name").replace("-", "_"),
                         version=dist.get("Version"),
                         description=dist.get("Summary")
                     )
@@ -78,8 +78,8 @@ class ImportRegistry:
             try:
                 package.meta = PackageMetadata().load(meta)
             except BootstrapException as e:
-                self.log.critical(f"Metadata validation error: {e}")
-                raise
+                self.log.exception(e)
+                continue
 
             self.log.info("Attaching {name}/{version}".format(**package.meta))
 
