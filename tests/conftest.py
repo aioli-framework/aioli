@@ -4,14 +4,16 @@ from aioli import Package, Application
 
 
 @pytest.fixture
-def pkg():
-    def _loaded(*args, version="0.1.0", name="pkg_test", description="Test", **kwargs):
+def get_pkg():
+    def _loaded(*args, **kwargs):
         export = Package(
             *args,
-            version=version,
-            name=name,
-            description=description,
-            **kwargs
+            meta=dict(
+                version=kwargs.pop("version", "0.1.0"),
+                name=kwargs.pop("name", "pkg_name"),
+                description=kwargs.pop("description", "pkg_description")
+            ),
+            **kwargs,
         )
 
         return export
@@ -20,24 +22,32 @@ def pkg():
 
 
 @pytest.fixture
-def pkg_registered(logger):
-    def _loaded(path, *args, version="0.1.0", name="pkg_test", description="Test", **kwargs):
-        export = Package(
-            *args,
-            version=version,
-            name=name,
-            description=description,
+def get_app():
+    def _loaded(packages, **kwargs):
+        app = Application(
+            packages=packages,
             **kwargs
         )
 
-        app = Application(
-            packages=[export],
-            config={
-                name: dict(
-                    path=path
-                )
-            }
-        )
+        return app
+
+    return _loaded
+
+
+@pytest.fixture
+def pkg(get_app, get_pkg, logger):
+    def conf_path(value):
+        return dict(config={"path": value})
+
+    def _loaded(*args, conf_path=None, **kwargs):
+        export = get_pkg(*args, **kwargs)
+        config = {}
+
+        if conf_path:
+            config = {export._meta["name"]: dict(path=conf_path)}
+
+        app = get_app([export], config=config)
+        app._register_packages()
 
         return app.registry.imported[-1]
 

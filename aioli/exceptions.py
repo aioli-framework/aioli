@@ -21,6 +21,10 @@ class InvalidPackageName(BootstrapException):
     pass
 
 
+class InvalidPackageDescription(BootstrapException):
+    pass
+
+
 class AioliException(HTTPException):
     def __init__(self, status=500, message="Internal Server Error"):
         super(AioliException, self).__init__(status_code=status, detail=message)

@@ -6,15 +6,11 @@ from datetime import datetime
 here = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.abspath(".."))
 
-import aioli
-
 now = datetime.now()
 
 project = "Aioli"
 copyright = f"{now.year} Robert Wikman"
 author = u"Robert Wikman <rbw@vault13.org>"
-
-version = aioli.__version__
 
 extensions = [
     "sphinx.ext.autodoc",

@@ -1,69 +1,54 @@
 import logging
-import re
 
-from marshmallow import Schema, fields, validate
-from marshmallow.exceptions import ValidationError
+from marshmallow import Schema, fields
 
-from .controller import BaseHttpController, BaseWebSocketController
+from .controller import BaseHttpController
 from .service import BaseService
+from .component import ComponentMeta
 from .config import PackageConfigSchema
-from .exceptions import BootstrapException, InvalidPackagePath, InvalidPackageName
-
-
-NAME_REGEX = r"^[a-z0-9]+(?:_[a-z0-9]+)*$"
-
-# Semantic version regex
-# 1 - Major
-# 2 - Minor
-# 3 - Patch
-# 4 (optional) - Pre-release version info
-# 5 (optional) - Metadata (build time, number, etc.)
-
-VERSION_REGEX = r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[a-zA-Z\d][-a-zA-Z.\d]*)?(\+[a-zA-Z\d][-a-zA-Z.\d]*)?$"
+from .exceptions import BootstrapException
+from .validation import (
+    validate_name,
+    validate_path,
+    validate_description,
+    validate_version
+)
 
 
 class PackageMetadata(Schema):
     name = fields.String(
         required=True,
-        validate=[
-            validate.Regexp(
-                NAME_REGEX,
-                error="The Package name may contain up to 42 lowercase alphanumeric and underscore characters."
-            ),
-            validate.Length(max=42)
-        ]
+        validate=validate_name
     )
     description = fields.String(
         required=False,
-        validate=validate.Length(max=256)
+        validate=validate_description
     )
     version = fields.String(
         required=True,
-        validate=validate.Regexp(
-            VERSION_REGEX,
-            error="Invalid Semantic Versioning string"
-        )
+        validate=validate_version
     )
 
 
 class Package:
     """Associates components and meta with a package, for registration with a Aioli Application.
 
-    :param meta: Package metadata.
-    :param auto_meta: Attempt to automatically resolve meta for Package
+    :param meta: Package metadata, cannot be used with auto_meta
+    :param auto_meta: Attempt to automatically resolve meta for Package, cannot be used with meta
     :param controllers: List of Controller classes to register with the Package
     :param services: List of Services classes to register with the Package
     :param config: Package Configuration Schema
 
     :ivar app: Application instance
+    :ivar meta: Package meta dictionary
     :ivar log: Package logger
-    :ivar state: Package state
+    :ivar stash: Package Stash
     :ivar config: Package config
     :ivar controllers: List of Controllers registered with the Package
     :ivar services: List of Services registered with the Package
     """
 
-    class State:
+    class Stash:
         __state = {}
 
         def __setitem__(self, key, value):
@@ -73,7 +58,9 @@ class Package:
             return self.__state.get(item)
 
     app = None
+    name = None
     config = {}
+    meta = None
     log: logging.Logger
 
     services = []
@@ -89,61 +76,56 @@ class Package:
     ):
         if auto_meta and meta:
             raise BootstrapException("Package meta and auto_meta are mutually exclude")
-        elif not auto_meta or meta:
+        elif not auto_meta and not meta:
             raise BootstrapException("Package meta or auto_meta must be supplied")
 
-        self.meta = PackageMetadata().loads(meta) if meta else None
-        self.auto_meta = auto_meta
+        self._meta = meta
+        self._auto_meta = auto_meta
 
-        self.__controllers = controllers
-        self.__services = services
+        self._services = services
+        self._controllers = controllers
 
         if config is None:
-            self.conf_schema = PackageConfigSchema
+            self._conf_schema = PackageConfigSchema
         elif isinstance(config, type) and issubclass(config, PackageConfigSchema):
-            self.conf_schema = config
+            self._conf_schema = config
         else:
             raise BootstrapException(
                 f"Invalid config type {config}. Must be subclass of {PackageConfigSchema}, or None"
             )
 
-        self.state = Package.State()
+        self.stash = Package.Stash()
 
-    def _register_services(self, pkg_name):
-        registered = []
+    def _register_services(self):
+        if self._services is None:
+            self._services = []
+        elif not isinstance(self._services, list):
+            raise BootstrapException(f"{self.name} services must be a list or None")
 
-        if not self.__services:
-            self.log.info("No Services to register")
-        elif not isinstance(self.__services, list):
-            raise BootstrapException(f"{pkg_name} services must be a list or None")
-
-        for svc in self.__services:
-            if not issubclass(svc, BaseService):
-                raise BootstrapException(f"{pkg_name} services must be a list of BaseService services")
+        for svc in self._services:
+            if type(svc) != ComponentMeta or not issubclass(svc, BaseService):
+                raise BootstrapException(
+                    f"Service {svc} of {self.name} is invalid, must be of {BaseService} type"
+                )
 
             obj = svc(self)
-            registered.append(obj)
+            yield obj
 
-        return registered
+    def _register_controllers(self):
+        if self._controllers is None:
+            self._controllers = []
+        elif not isinstance(self._controllers, list):
+            raise BootstrapException(f"{self.name} controllers must be a list or None")
 
-    def _register_controllers(self, pkg_name):
-        registered = []
-
-        if not self.__controllers:
-            self.log.info("No Controllers to register")
-        elif not isinstance(self.__controllers, list):
-            raise BootstrapException(f"{pkg_name} controllers must be a list or None")
-
-        for ctrl in self.__controllers:
-            if not issubclass(ctrl, BaseHttpController) or issubclass(ctrl, BaseWebSocketController):
-                raise BootstrapException(f"{pkg_name} controllers must be a list of "
-                                         f"{BaseHttpController} or {BaseWebSocketController} controllers")
+        for ctrl in self._controllers:
+            if type(ctrl) != ComponentMeta or not issubclass(ctrl, BaseHttpController):
+                raise BootstrapException(
+                    f"Controller {ctrl} of {self.name} is invalid, must be of {BaseHttpController} type"
+                )
 
             obj = ctrl(self)
             obj.register_routes(self.app.config["api_base"])
-            registered.append(obj)
-
-        return registered
+            yield obj
 
     async def call_startup_handlers(self):
         for svc in self.services:
@@ -153,22 +135,13 @@ class Package:
             await ctrl.on_startup()
 
     def register(self, app, config):
-        name = self.meta["name"]
-        path = self.config.get("path", f"/{name}")
-
-        if name in ["aioli", "aioli_core"]:
-            raise InvalidPackageName(f"Name {name} is reserved and cannot be used")
-
-        if not re.match(r"^/[a-zA-Z0-9-_]*$", path):
-            raise InvalidPackagePath(f"Invalid path was provided to Package {name}")
+        self.name = name = self.meta["name"]
+        config["path"] = validate_path(config.get("path", f"/{name}"))
 
         self.app = app
         self.log = logging.getLogger(f"aioli.pkg.{name}")
 
-        try:
-            self.config = self.conf_schema(name).load(config)
-        except ValidationError as e:
-            raise BootstrapException(f"Package {name} failed configuration validation: {e.messages}")
+        self.config = self._conf_schema(name).load(config)
 
-        self.services = self._register_services(name)
-        self.controllers = self._register_controllers(name)
+        self.services = set(self._register_services())
+        self.controllers = set(self._register_controllers())

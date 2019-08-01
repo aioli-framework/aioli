@@ -53,6 +53,14 @@ img.logo {
 
 .note {
     background-color: #fffeeb !important;
-    padding: 0 30px 10px 30px !important;
+    padding: 20px 20px 10px 30px !important;
+}
+
+.class .field-odd {
+    padding-bottom: 20px;
+}
+
+.class dt, .function dt {
+    padding-top: 3px !important;
 }
 

@@ -26,9 +26,7 @@ Example – Creating a Package with Controller and Service layers
 
 
     export = Package(
-        name="aioli_guestbook",
-        version="0.1.0",
-        description="Example guestbook Package",
+        auto_meta=True,
         controllers=[HttpController],
         services=[VisitService, VisitorService],
         config=ConfigSchema,
