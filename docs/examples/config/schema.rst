@@ -47,9 +47,7 @@ Associate the configuration schema with a Package.
 
 
     export = Package(
-        name="aioli_rdbms",
-        version="0.1.0",
-        description="ORM and CRUD Service for Aioli with support for MySQL and PostgreSQL",
+        auto_meta=True,
         controllers=[],
         services=[DatabaseService],
         config=ConfigSchema,
