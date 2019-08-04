@@ -15,6 +15,7 @@ pip-selfcheck.json
 .DS_Store
 .AppleDouble
 .LSOverride
+.aioli-state
 
 # PyCharm
 .idea/

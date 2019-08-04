@@ -14,6 +14,7 @@ from aioli.log import LOGGING_CONFIG_DEFAULTS
 from .config import ApplicationConfigSchema
 from .registry import ImportRegistry
 from .errors import http_error, validation_error, decode_error
+from .__state import State
 
 
 class Application(Starlette):
@@ -28,6 +29,7 @@ class Application(Starlette):
     """
 
     log = logging.getLogger("aioli.core")
+    state = State("app")
 
     def __init__(self, packages, **kwargs):
         if not isinstance(packages, list):

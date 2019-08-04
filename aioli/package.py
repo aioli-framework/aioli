@@ -13,6 +13,7 @@ from .validation import (
     validate_description,
     validate_version
 )
+from .__state import State
 
 
 class PackageMetadata(Schema):
@@ -42,23 +43,14 @@ class Package:
     :ivar app: Application instance
     :ivar meta: Package meta dictionary
     :ivar log: Package logger
-    :ivar stash: Package Stash
     :ivar config: Package config
     :ivar controllers: List of Controllers registered with the Package
     :ivar services: List of Services registered with the Package
     """
 
-    class Stash:
-        __state = {}
-
-        def __setitem__(self, key, value):
-            self.__state[key] = value
-
-        def __getitem__(self, item):
-            return self.__state.get(item)
-
     app = None
     name = None
+    state = None
     config = {}
     meta = None
     log: logging.Logger
@@ -93,8 +85,6 @@ class Package:
             raise BootstrapException(
                 f"Invalid config type {config}. Must be subclass of {PackageConfigSchema}, or None"
             )
-
-        self.stash = Package.Stash()
 
     def _register_services(self):
         if self._services is None:
@@ -136,6 +126,8 @@ class Package:
 
     def register(self, app, config):
         self.name = name = self.meta["name"]
+        self.state = State(name)
+
         config["path"] = validate_path(config.get("path", f"/{name}"))
 
         self.app = app
