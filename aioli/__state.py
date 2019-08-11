@@ -19,8 +19,9 @@ class StateMeta(type):
 class State(metaclass=StateMeta):
     _db_path = ".aioli-state"
 
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, lifetime_secs=math.inf):
         self._name = name
+        self._lifetime_secs = lifetime_secs
 
         with self._get_db() as db:
             if name not in db:
@@ -29,8 +30,7 @@ class State(metaclass=StateMeta):
     def _get_db(self, *args, **kwargs):
         return shelve.open(self._db_path, *args, writeback=True, **kwargs)
 
-    @property
-    def age_seconds(self):
+    def age_seconds(self, since):
         with self._get_db() as db:
             state = db[self._name]
             if UPDATED_ON not in state:
@@ -41,7 +41,13 @@ class State(metaclass=StateMeta):
     def __getitem__(self, key):
         with self._get_db() as db:
             state = db[self._name]
-            return state[key] if key in state else None
+
+            if key in state:
+                update_time, data = state[key]
+                if self._lifetime_secs > (datetime.now() - update_time).total_seconds():
+                    return data
+
+            return {}
 
     def __setitem__(self, key, value):
         with self._get_db() as db:
@@ -50,5 +56,4 @@ class State(metaclass=StateMeta):
             if key not in state:
                 state[key] = {}
 
-            state[UPDATED_ON] = datetime.now()
-            state[key] = value
+            state[key] = datetime.now(), value
