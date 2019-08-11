@@ -30,14 +30,6 @@ class State(metaclass=StateMeta):
     def _get_db(self, *args, **kwargs):
         return shelve.open(self._db_path, *args, writeback=True, **kwargs)
 
-    def age_seconds(self, since):
-        with self._get_db() as db:
-            state = db[self._name]
-            if UPDATED_ON not in state:
-                return math.inf
-
-            return (datetime.now() - state[UPDATED_ON]).total_seconds()
-
     def __getitem__(self, key):
         with self._get_db() as db:
             state = db[self._name]

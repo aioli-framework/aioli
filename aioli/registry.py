@@ -2,8 +2,9 @@ import os
 import logging
 import configparser
 
-from importlib_metadata import metadata
 from enum import Enum
+
+from importlib_metadata import metadata
 
 from .exceptions import BootstrapException
 from .package import Package, PackageMetadata

@@ -196,7 +196,7 @@ def pkg_show(ctx, pkg_name):
     print(
         "\n".join(
             [
-                f"\n{name}\n{underline}",
+                f"{name}\n{underline}",
                 props,
             ]
         )
@@ -217,7 +217,6 @@ def pkg_list(ctx, **kwargs):
     print(
         "\n".join(
             [
-                "",
                 table.draw(),
                 "\nPackage details: aioli pkg show <PKG_NAME>\n",
             ]
