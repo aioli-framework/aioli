@@ -17,6 +17,12 @@ pip-selfcheck.json
 .LSOverride
 .aioli-state
 
+# Aioli
+.aioli-state.db
+
+# Poetry
+poetry.lock
+
 # PyCharm
 .idea/
 
