@@ -1,17 +1,15 @@
-import os
-
 from collections import namedtuple
 from pathlib import Path
 
 import click
 import texttable
 
-from yaml import load, dump
+from yaml import dump
 from aioli import package_state
 from poetry.utils.env import Env
 
-from marshmallow import Schema, fields, pre_dump, pre_load, post_load
-from poetry.repositories.pypi_repository import PyPiRepository, Package, ServerProxy
+from marshmallow import Schema, fields
+from poetry.repositories.pypi_repository import PyPiRepository, ServerProxy
 from poetry.repositories.installed_repository import InstalledRepository
 
 from poetry.repositories.exceptions import PackageNotFound
