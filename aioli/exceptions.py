@@ -1,6 +1,10 @@
 from starlette.exceptions import HTTPException
 
 
+class CommandException(Exception):
+    pass
+
+
 class BootstrapException(Exception):
     pass
 
