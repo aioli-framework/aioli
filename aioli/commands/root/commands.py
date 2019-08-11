@@ -23,14 +23,14 @@ def root_group(ctx):
     show_default=True,
     type=str
 )
-def dev_start(app_path, host, port, **kwargs):
+def dev_start(app, host, port, **kwargs):
     kwargs["reload"] = not kwargs.pop("no_reload")
     kwargs["debug"] = not kwargs.pop("no_debug")
 
-    config = importer.import_from_string(app_path).config
+    config = importer.import_from_string(app).config
 
     run_server(
-        app_path,
+        app,
         host=host or config["dev_host"],
         port=port or config["dev_port"],
         loop="uvloop",

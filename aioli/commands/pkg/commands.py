@@ -120,11 +120,11 @@ class PackageIndex:
 
         pkg_full = PackageSchema(unknown="EXCLUDE").load(
             dict(
+                **info,
                 links=dict(
                     project=info.pop("home_page").rstrip("/"),
                     pypi=info.pop("project_url").rstrip("/")
                 ),
-                **info,
                 releases=[dict(
                     installed=pkg["installed"] and pkg["version"] == version,
                     version=version,
@@ -150,7 +150,7 @@ def get_table_row(item, columns):
 def get_table(items):
     table = texttable.Texttable()
 
-    columns = ["name", "version", "description", "official", "installed"]
+    columns = ["name", "description", "official", "installed"]
     table.add_row(columns)
 
     for item in items.values():
@@ -188,10 +188,12 @@ def pkg_show(ctx, pkg_name):
     del pkg["version"]
 
     props = dump(dict(
+        description=pkg["description"],
         author="{0} <{1}>".format(pkg.pop("author"), pkg.pop("author_email")),
+        license=pkg["license"],
+        links=pkg["links"],
         releases=sorted(releases, reverse=True)[:4],
-        **pkg
-    ))
+    ), sort_keys=False)
 
     print(
         "\n".join(
