@@ -3,7 +3,6 @@ import importlib
 
 from marshmallow import Schema, fields
 
-from .component import ComponentMeta
 from .config import PackageConfigSchema
 from .controller import BaseHttpController
 from .datastores import MemoryStore
@@ -88,10 +87,9 @@ class Package:
             )
 
     def integrate_service(self, foreign_cls):
-        foreign_pkg_name = foreign_cls.__module__.split('.')[0]
-        export = importlib.import_module(foreign_pkg_name).export
-        config_data = self.app.registry.config.get(foreign_pkg_name, {})
-        config = export.config_schema(foreign_pkg_name).load(config_data)
+        module_name = foreign_cls.__module__.split('.')[0]
+        pkg = importlib.import_module(module_name).export
+        config = self.app.registry.get_config(module_name, pkg.config_schema)
 
         return self._register_service(
             foreign_cls,
@@ -119,6 +117,16 @@ class Package:
 
         return obj
 
+    def _register_controller(self, cls, **kwargs):
+        if not issubclass(cls, BaseHttpController):
+            raise BootstrapException(
+                f"Controller {cls} of {self.name} is invalid, must be of {BaseHttpController} type"
+            )
+
+        obj = cls(self, **kwargs)
+        obj.register_routes(self.app.config["api_base"])
+        return obj
+
     def _register_services(self):
         if self._services is None:
             self._services = []
@@ -134,15 +142,8 @@ class Package:
         elif not isinstance(self._controllers, list):
             raise BootstrapException(f"{self.name} controllers must be a list or None")
 
-        for ctrl in self._controllers:
-            if type(ctrl) != ComponentMeta or not issubclass(ctrl, BaseHttpController):
-                raise BootstrapException(
-                    f"Controller {ctrl} of {self.name} is invalid, must be of {BaseHttpController} type"
-                )
-
-            obj = ctrl(self)
-            obj.register_routes(self.app.config["api_base"])
-            yield obj
+        for cls in self._controllers:
+            self._register_controller(cls)
 
     async def call_startup_handlers(self):
         """Call startup handlers in the order they were registered (integrated services last)"""
@@ -153,16 +154,15 @@ class Package:
         for ctrl in self.controllers:
             await ctrl.on_startup()
 
-    def register(self, app, config):
+    def register(self, app):
         self.name = name = self.meta["name"]
         self.state = MemoryStore(name)
-
-        config["path"] = validate_path(config.get("path", f"/{name}"))
 
         self.app = app
         self.log = logging.getLogger(f"aioli.pkg.{name}")
 
-        self.config = self.config_schema(name).load(config)
+        config = self.config = app.registry.get_config(name, self.config_schema)
+        config["path"] = validate_path(config.get("path", f"/{name}"))
 
         self._register_services()
-        self.controllers = set(self._register_controllers())
+        self._register_controllers()

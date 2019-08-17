@@ -1,23 +1,26 @@
-import re
-
 from starlette.endpoints import WebSocketEndpoint
 
 from aioli.component import Component, ComponentMeta
 from aioli.exceptions import BootstrapException
+from aioli.utils import format_path
 
 from .registry import handlers
 
 
-def format_path(*parts):
-    path = ""
+class HttpControllerMeta(ComponentMeta):
+    def __call__(cls, pkg, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(ComponentMeta, cls).__call__(pkg, *args, **kwargs)
 
-    for part in parts:
-        path = f"/{path}/{part}"
+        obj = cls._instances[cls]
 
-    return re.sub(r"/+", "/", path.rstrip("/"))
+        if obj not in pkg.services:
+            pkg.controllers.append(obj)
+
+        return obj
 
 
-class BaseHttpController(Component, metaclass=ComponentMeta):
+class BaseHttpController(Component, metaclass=HttpControllerMeta):
     """HTTP API Controller
 
     :param pkg: Attach to this package
