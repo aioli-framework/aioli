@@ -158,14 +158,34 @@ def get_table(items):
     return table
 
 
-@click.group(name="pkg", short_help="Package management")
+@click.group(name="pkg", short_help="Work with packages of all sorts")
 @click.pass_context
 def pkg_group(ctx):
     path = Path(".")
     ctx.obj["idx"] = PackageIndex(path)
 
 
-@pkg_group.command("show", short_help="Show details about an Aioli Package")
+@pkg_group.group(name="index", short_help="Package Index")
+def pkg_idx_group():
+    pass
+
+
+@pkg_idx_group.command("help", short_help="Aioli Packages")
+@click.pass_context
+def pkg_ext_info(ctx, **kwargs):
+    print(
+        "\n".join([
+            f"Extension Packages",
+            "===",
+            "This CLI for showing information about third party and official",
+            "Aioli Packages available on the Python Package Index.\n",
+            "Use your favorite Python packaging tool to install a Package:",
+            "$ pip install aioli-rdbms\n",
+        ])
+    )
+
+
+@pkg_idx_group.command("show", short_help="Extension package details")
 @click.argument("pkg_name")
 @click.pass_context
 def pkg_show(ctx, pkg_name):
@@ -203,7 +223,7 @@ def pkg_show(ctx, pkg_name):
     )
 
 
-@pkg_group.command("list", short_help="List Aioli Packages")
+@pkg_idx_group.command("list", short_help="List of Extension Packages")
 @click.pass_context
 def pkg_list(ctx, **kwargs):
     idx = ctx.obj["idx"]
@@ -222,4 +242,10 @@ def pkg_list(ctx, **kwargs):
             ]
         )
     )
+
+
+@pkg_group.command("new", short_help="Create new Package")
+@click.pass_context
+def pkg_new(ctx, **kwargs):
+    pass
 
