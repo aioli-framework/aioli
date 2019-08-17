@@ -15,6 +15,10 @@ class BaseService(Component, metaclass=ComponentMeta):
     """
 
     _instances = {}
+    loggers = []
+
+    async def _on_startup(self):
+        return await self.on_startup()
 
     def _validate_import(self, svc):
         if not issubclass(svc, BaseService):
@@ -23,7 +27,10 @@ class BaseService(Component, metaclass=ComponentMeta):
                 f"not a subclass of aioli.{BaseService.__name__}"
             )
         elif svc not in self._instances.keys():
-            raise BootstrapException(f"Cannot use unregistered Service: {svc.__name__}")
+            pkg_name = svc.__module__.split('.')[0]
+            raise BootstrapException(
+                f"Package {pkg_name}, used by Service {svc.__name__}, must be registered with the Application"
+            )
 
     def connect(self, svc):
         """Reuses existing instance of the given Service class, in the context of
@@ -37,12 +44,17 @@ class BaseService(Component, metaclass=ComponentMeta):
         self._validate_import(svc)
         return self._instances[svc]
 
-    def integrate(self, svc):
+    def integrate(self, svc_cls):
         """Creates a new instance of the given Service class in the context of the current Package.
 
-        :param svc: Service class
+        :param svc_cls: Service class
         :return: Service instance
         """
 
-        self._validate_import(svc)
-        return svc(pkg=self.pkg, reuse_existing=False)
+        self._validate_import(svc_cls)
+        self.pkg.add_relation(svc_cls, self)
+
+        svc = svc_cls(pkg=self.pkg, reuse_existing=False)
+
+        return svc
+

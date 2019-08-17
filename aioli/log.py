@@ -4,19 +4,21 @@ LOGGING_CONFIG_DEFAULTS = dict(
     version=1,
     disable_existing_loggers=False,
     loggers={
-        "root": {"level": "DEBUG", "handlers": ["pkg_console"], "propagate": False},
-        "databases": {
-            "level": "DEBUG",
+        "root": {
+            "level": "WARN",
             "handlers": ["pkg_console"],
-            "propagate": False,
+            "propagate": False
         },
-        "sqlalchemy": {
-            "level": "DEBUG",
+        "aioli": {
+            "level": "WARN",
             "handlers": ["pkg_console"],
-            "propagate": False,
+            "propagate": False
         },
-        "aioli": {"level": "DEBUG", "handlers": ["pkg_console"], "propagate": False},
-        "uvicorn": {"level": "DEBUG", "handlers": ["pkg_console"], "propagate": False},
+        "uvicorn": {
+            "level": "WARN",
+            "handlers": ["pkg_console"],
+            "propagate": False
+        },
     },
     handlers={
         "console": {

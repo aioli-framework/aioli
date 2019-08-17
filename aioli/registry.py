@@ -17,6 +17,7 @@ class ComponentType(Enum):
 
 class ImportRegistry:
     imported = []
+    integrations = {}
     log = logging.getLogger("aioli.pkg")
 
     def __init__(self, app, config):

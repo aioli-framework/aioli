@@ -2,18 +2,18 @@ import logging
 
 from marshmallow import Schema, fields
 
-from .controller import BaseHttpController
-from .service import BaseService
 from .component import ComponentMeta
 from .config import PackageConfigSchema
+from .controller import BaseHttpController
+from .datastores import MemoryStore
 from .exceptions import BootstrapException
+from .service import BaseService
 from .validation import (
     validate_name,
     validate_path,
     validate_description,
     validate_version
 )
-from .__state import State
 
 
 class PackageMetadata(Schema):
@@ -66,6 +66,8 @@ class Package:
         services=None,
         config=None,
     ):
+        self.__relations = {}
+
         if auto_meta and meta:
             raise BootstrapException("Package meta and auto_meta are mutually exclude")
         elif not auto_meta and not meta:
@@ -86,6 +88,19 @@ class Package:
                 f"Invalid config type {config}. Must be subclass of {PackageConfigSchema}, or None"
             )
 
+    def add_relation(self, producer, consumer):
+        if producer not in self.__relations:
+            self.__relations[producer] = []
+
+        self.__relations[producer].append(consumer)
+
+    def _register_logger(self, name):
+        if self.app.config["debug"]:
+            logger = logging.getLogger(name)
+            logger.addHandler(logging._handlers["pkg_console"])
+            logger.propagate = False
+            logger.setLevel(logging.DEBUG)
+
     def _register_services(self):
         if self._services is None:
             self._services = []
@@ -93,12 +108,16 @@ class Package:
             raise BootstrapException(f"{self.name} services must be a list or None")
 
         for svc in self._services:
-            if type(svc) != ComponentMeta or not issubclass(svc, BaseService):
+            if not issubclass(svc, BaseService):
                 raise BootstrapException(
                     f"Service {svc} of {self.name} is invalid, must be of {BaseService} type"
                 )
 
             obj = svc(self)
+
+            for logger in obj.loggers:
+                self._register_logger(logger)
+
             yield obj
 
     def _register_controllers(self):
@@ -118,15 +137,34 @@ class Package:
             yield obj
 
     async def call_startup_handlers(self):
+        """Call startup handlers in thoughtful order.
+
+        Loads dependencies last, once dependents are done registering with the Package
+        """
+
+        started = []
+
+        async def call_handler(obj):
+            _id = obj.__class__
+
+            if _id in started:
+                return
+            elif _id in self.__relations:  # Register dependant services first
+                for obj in self.__relations[_id]:
+                    await call_handler(obj)
+
+            await obj.on_startup()
+            started.append(obj)
+
         for svc in self.services:
-            await svc.on_startup()
+            await call_handler(svc)
 
         for ctrl in self.controllers:
-            await ctrl.on_startup()
+            await call_handler(ctrl)
 
     def register(self, app, config):
         self.name = name = self.meta["name"]
-        self.state = State(name)
+        self.state = MemoryStore(name)
 
         config["path"] = validate_path(config.get("path", f"/{name}"))
 
