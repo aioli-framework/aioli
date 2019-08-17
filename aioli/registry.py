@@ -21,7 +21,7 @@ class ImportRegistry:
     log = logging.getLogger("aioli.pkg")
 
     def __init__(self, app, config):
-        self._config = config
+        self.config = config
         self._app = app
 
     def _get_components(self, comp_type, pkg_name=None):
@@ -85,7 +85,7 @@ class ImportRegistry:
 
             self.log.info("Attaching {name}/{version}".format(**package.meta))
 
-            config = self._config.get(package.meta["name"], {})
+            config = self.config.get(package.meta["name"], {})
             package.register(self._app, config)
 
             self.imported.append(package)

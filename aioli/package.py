@@ -1,4 +1,5 @@
 import logging
+import importlib
 
 from marshmallow import Schema, fields
 
@@ -66,8 +67,6 @@ class Package:
         services=None,
         config=None,
     ):
-        self.__relations = {}
-
         if auto_meta and meta:
             raise BootstrapException("Package meta and auto_meta are mutually exclude")
         elif not auto_meta and not meta:
@@ -80,19 +79,25 @@ class Package:
         self._controllers = controllers
 
         if config is None:
-            self._conf_schema = PackageConfigSchema
+            self.config_schema = PackageConfigSchema
         elif isinstance(config, type) and issubclass(config, PackageConfigSchema):
-            self._conf_schema = config
+            self.config_schema = config
         else:
             raise BootstrapException(
                 f"Invalid config type {config}. Must be subclass of {PackageConfigSchema}, or None"
             )
 
-    def add_relation(self, producer, consumer):
-        if producer not in self.__relations:
-            self.__relations[producer] = []
+    def integrate_service(self, foreign_cls):
+        foreign_pkg_name = foreign_cls.__module__.split('.')[0]
+        export = importlib.import_module(foreign_pkg_name).export
+        config_data = self.app.registry.config.get(foreign_pkg_name, {})
+        config = export.config_schema(foreign_pkg_name).load(config_data)
 
-        self.__relations[producer].append(consumer)
+        return self._register_service(
+            foreign_cls,
+            reuse_existing=False,
+            config_override=config
+        )
 
     def _register_logger(self, name):
         if self.app.config["debug"]:
@@ -101,24 +106,27 @@ class Package:
             logger.propagate = False
             logger.setLevel(logging.DEBUG)
 
+    def _register_service(self, cls, **kwargs):
+        if not issubclass(cls, BaseService):
+            raise BootstrapException(
+                f"Service {cls} of {self.name} is invalid, must be of {BaseService} type"
+            )
+
+        obj = cls(self, **kwargs)
+
+        for logger in obj.loggers:
+            self._register_logger(logger)
+
+        return obj
+
     def _register_services(self):
         if self._services is None:
             self._services = []
         elif not isinstance(self._services, list):
             raise BootstrapException(f"{self.name} services must be a list or None")
 
-        for svc in self._services:
-            if not issubclass(svc, BaseService):
-                raise BootstrapException(
-                    f"Service {svc} of {self.name} is invalid, must be of {BaseService} type"
-                )
-
-            obj = svc(self)
-
-            for logger in obj.loggers:
-                self._register_logger(logger)
-
-            yield obj
+        for cls in self._services:
+            self._register_service(cls)
 
     def _register_controllers(self):
         if self._controllers is None:
@@ -137,30 +145,13 @@ class Package:
             yield obj
 
     async def call_startup_handlers(self):
-        """Call startup handlers in thoughtful order.
-
-        Loads dependencies last, once dependents are done registering with the Package
-        """
-
-        started = []
-
-        async def call_handler(obj):
-            _id = obj.__class__
-
-            if _id in started:
-                return
-            elif _id in self.__relations:  # Register dependant services first
-                for obj in self.__relations[_id]:
-                    await call_handler(obj)
-
-            await obj.on_startup()
-            started.append(obj)
+        """Call startup handlers in the order they were registered (integrated services last)"""
 
         for svc in self.services:
-            await call_handler(svc)
+            await svc.on_startup()
 
         for ctrl in self.controllers:
-            await call_handler(ctrl)
+            await ctrl.on_startup()
 
     def register(self, app, config):
         self.name = name = self.meta["name"]
@@ -171,7 +162,7 @@ class Package:
         self.app = app
         self.log = logging.getLogger(f"aioli.pkg.{name}")
 
-        self.config = self._conf_schema(name).load(config)
+        self.config = self.config_schema(name).load(config)
 
-        self.services = set(self._register_services())
+        self._register_services()
         self.controllers = set(self._register_controllers())
