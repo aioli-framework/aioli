@@ -170,7 +170,7 @@ def pkg_idx_group():
     pass
 
 
-@pkg_idx_group.command("help", short_help="Aioli Packages")
+@pkg_idx_group.command("help", short_help="Package help")
 @click.pass_context
 def pkg_ext_info(ctx, **kwargs):
     print(
@@ -185,7 +185,7 @@ def pkg_ext_info(ctx, **kwargs):
     )
 
 
-@pkg_idx_group.command("show", short_help="Extension package details")
+@pkg_idx_group.command("show", short_help="Aioli package details")
 @click.argument("pkg_name")
 @click.pass_context
 def pkg_show(ctx, pkg_name):
@@ -223,7 +223,7 @@ def pkg_show(ctx, pkg_name):
     )
 
 
-@pkg_idx_group.command("list", short_help="List of Extension Packages")
+@pkg_idx_group.command("list", short_help="List of Aioli Packages")
 @click.pass_context
 def pkg_list(ctx, **kwargs):
     idx = ctx.obj["idx"]
