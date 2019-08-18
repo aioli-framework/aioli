@@ -1,7 +1,6 @@
 from .exceptions import AioliException
 from .package import Package
 from .app import Application
-from .__state import State
+from .datastores import FileStore
 
-package_state = State("packages")
-
+package_state = FileStore("packages", lifetime_secs=10)

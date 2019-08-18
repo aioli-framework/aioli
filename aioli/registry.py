@@ -2,8 +2,9 @@ import os
 import logging
 import configparser
 
-from importlib_metadata import metadata
 from enum import Enum
+
+from importlib_metadata import metadata
 
 from .exceptions import BootstrapException
 from .package import Package, PackageMetadata
@@ -14,8 +15,24 @@ class ComponentType(Enum):
     controllers = "controller"
 
 
+class PackageConfig:
+    def __init__(self, name, data, schema):
+        self.name = name
+        self._data = schema(name).load(data)
+
+    def get(self, item, fallback):
+        return self._data.get(item) or fallback
+
+    def __getitem__(self, item):
+        return self._data[item]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+
 class ImportRegistry:
     imported = []
+    integrations = {}
     log = logging.getLogger("aioli.pkg")
 
     def __init__(self, app, config):
@@ -37,6 +54,10 @@ class ImportRegistry:
 
     def get_services(self, pkg_name=None):
         return [(svc.__class__, svc) for svc in self._get_components("service", pkg_name)]
+
+    def get_config(self, pkg_name, schema_cls):
+        data = self._config.get(pkg_name, {})
+        return PackageConfig(pkg_name, data, schema_cls)
 
     def register_packages(self, registerables):
         registerables = set(registerables)
@@ -83,8 +104,7 @@ class ImportRegistry:
 
             self.log.info("Attaching {name}/{version}".format(**package.meta))
 
-            config = self._config.get(package.meta["name"], {})
-            package.register(self._app, config)
+            package.register(self._app)
 
             self.imported.append(package)
 

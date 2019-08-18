@@ -1,19 +1,19 @@
 import logging
+import importlib
 
 from marshmallow import Schema, fields
 
-from .controller import BaseHttpController
-from .service import BaseService
-from .component import ComponentMeta
 from .config import PackageConfigSchema
+from .controller import BaseHttpController
+from .datastores import MemoryStore
 from .exceptions import BootstrapException
+from .service import BaseService
 from .validation import (
     validate_name,
     validate_path,
     validate_description,
     validate_version
 )
-from .__state import State
 
 
 class PackageMetadata(Schema):
@@ -55,9 +55,6 @@ class Package:
     meta = None
     log: logging.Logger
 
-    services = []
-    controllers = []
-
     def __init__(
         self,
         meta=None,
@@ -77,14 +74,58 @@ class Package:
         self._services = services
         self._controllers = controllers
 
+        self.services = []
+        self.controllers = []
+
         if config is None:
-            self._conf_schema = PackageConfigSchema
+            self.config_schema = PackageConfigSchema
         elif isinstance(config, type) and issubclass(config, PackageConfigSchema):
-            self._conf_schema = config
+            self.config_schema = config
         else:
             raise BootstrapException(
                 f"Invalid config type {config}. Must be subclass of {PackageConfigSchema}, or None"
             )
+
+    def integrate_service(self, foreign_cls):
+        module_name = foreign_cls.__module__.split('.')[0]
+        pkg = importlib.import_module(module_name).export
+        config = self.app.registry.get_config(module_name, pkg.config_schema)
+
+        return self._register_service(
+            foreign_cls,
+            reuse_existing=False,
+            config_override=config
+        )
+
+    def _register_logger(self, name):
+        if self.app.config["debug"]:
+            logger = logging.getLogger(name)
+            logger.addHandler(logging._handlers["pkg_console"])
+            logger.propagate = False
+            logger.setLevel(logging.DEBUG)
+
+    def _register_service(self, cls, **kwargs):
+        if not issubclass(cls, BaseService):
+            raise BootstrapException(
+                f"Service {cls} of {self.name} is invalid, must be of {BaseService} type"
+            )
+
+        obj = cls(self, **kwargs)
+
+        for logger in obj.loggers:
+            self._register_logger(logger)
+
+        return obj
+
+    def _register_controller(self, cls, **kwargs):
+        if not issubclass(cls, BaseHttpController):
+            raise BootstrapException(
+                f"Controller {cls} of {self.name} is invalid, must be of {BaseHttpController} type"
+            )
+
+        obj = cls(self, **kwargs)
+        obj.register_routes(self.app.config["api_base"])
+        return obj
 
     def _register_services(self):
         if self._services is None:
@@ -92,14 +133,8 @@ class Package:
         elif not isinstance(self._services, list):
             raise BootstrapException(f"{self.name} services must be a list or None")
 
-        for svc in self._services:
-            if type(svc) != ComponentMeta or not issubclass(svc, BaseService):
-                raise BootstrapException(
-                    f"Service {svc} of {self.name} is invalid, must be of {BaseService} type"
-                )
-
-            obj = svc(self)
-            yield obj
+        for cls in self._services:
+            self._register_service(cls)
 
     def _register_controllers(self):
         if self._controllers is None:
@@ -107,33 +142,27 @@ class Package:
         elif not isinstance(self._controllers, list):
             raise BootstrapException(f"{self.name} controllers must be a list or None")
 
-        for ctrl in self._controllers:
-            if type(ctrl) != ComponentMeta or not issubclass(ctrl, BaseHttpController):
-                raise BootstrapException(
-                    f"Controller {ctrl} of {self.name} is invalid, must be of {BaseHttpController} type"
-                )
-
-            obj = ctrl(self)
-            obj.register_routes(self.app.config["api_base"])
-            yield obj
+        for cls in self._controllers:
+            self._register_controller(cls)
 
     async def call_startup_handlers(self):
+        """Call startup handlers in the order they were registered (integrated services last)"""
+
         for svc in self.services:
             await svc.on_startup()
 
         for ctrl in self.controllers:
             await ctrl.on_startup()
 
-    def register(self, app, config):
+    def register(self, app):
         self.name = name = self.meta["name"]
-        self.state = State(name)
-
-        config["path"] = validate_path(config.get("path", f"/{name}"))
+        self.state = MemoryStore(name)
 
         self.app = app
         self.log = logging.getLogger(f"aioli.pkg.{name}")
 
-        self.config = self._conf_schema(name).load(config)
+        config = self.config = app.registry.get_config(name, self.config_schema)
+        config["path"] = validate_path(config.get("path", f"/{name}"))
 
-        self.services = set(self._register_services())
-        self.controllers = set(self._register_controllers())
+        self._register_services()
+        self._register_controllers()

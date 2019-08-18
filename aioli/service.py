@@ -2,7 +2,20 @@ from .component import Component, ComponentMeta
 from .exceptions import BootstrapException
 
 
-class BaseService(Component, metaclass=ComponentMeta):
+class ServiceMeta(ComponentMeta):
+    def __call__(cls, pkg, *args, reuse_existing=True, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(ComponentMeta, cls).__call__(pkg, *args, **kwargs)
+
+        obj = cls._instances[cls]
+
+        if obj not in pkg.services:
+            pkg.services.append(obj)
+
+        return obj
+
+
+class BaseService(Component, metaclass=ServiceMeta):
     """Base Service class
 
     :param pkg: Attach to this package
@@ -15,34 +28,30 @@ class BaseService(Component, metaclass=ComponentMeta):
     """
 
     _instances = {}
+    loggers = []
 
-    def _validate_import(self, svc):
-        if not issubclass(svc, BaseService):
-            raise BootstrapException(
-                f"{svc.__name__} passed to {self.__class__.__name__}.use_service is "
-                f"not a subclass of aioli.{BaseService.__name__}"
-            )
-        elif svc not in self._instances.keys():
-            raise BootstrapException(f"Cannot use unregistered Service: {svc.__name__}")
-
-    def connect(self, svc):
+    def connect(self, cls):
         """Reuses existing instance of the given Service class, in the context of
         the Package it was first registered with.
 
 
-        :param svc: Service class
+        :param cls: Service class
         :return: Existing Service instance
         """
 
-        self._validate_import(svc)
-        return self._instances[svc]
+        if cls not in self._instances.keys():
+            pkg_name = cls.__module__.split('.')[0]
+            raise BootstrapException(
+                f"Package {pkg_name}, used by Service {cls.__name__}, must be registered with the Application"
+            )
 
-    def integrate(self, svc):
+        return self._instances[cls]
+
+    def integrate(self, cls):
         """Creates a new instance of the given Service class in the context of the current Package.
 
-        :param svc: Service class
-        :return: Service instance
+        :param cls: Service class
+        :return: Integrated Service
         """
 
-        self._validate_import(svc)
-        return svc(pkg=self.pkg, reuse_existing=False)
+        return self.pkg.integrate_service(cls)

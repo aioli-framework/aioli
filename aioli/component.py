@@ -13,12 +13,12 @@ class Component:
     pkg = None
     log = None
 
-    def __init__(self, pkg):
+    def __init__(self, pkg, config_override=None):
         self.pkg = pkg
         self.app = pkg.app
         self.registry = self.app.registry
         self.log = pkg.log
-        self.config = pkg.config
+        self.config = config_override or pkg.config
 
     async def on_startup(self):
         """Called after the Package has been successfully attached to the Application and the Loop is available"""

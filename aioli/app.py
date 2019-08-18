@@ -14,7 +14,7 @@ from aioli.log import LOGGING_CONFIG_DEFAULTS
 from .config import ApplicationConfigSchema
 from .registry import ImportRegistry
 from .errors import http_error, validation_error, decode_error
-from .__state import State
+from .datastores import MemoryStore
 
 
 class Application(Starlette):
@@ -29,7 +29,7 @@ class Application(Starlette):
     """
 
     log = logging.getLogger("aioli.core")
-    state = State("app")
+    state = MemoryStore("app")
 
     def __init__(self, packages, **kwargs):
         if not isinstance(packages, list):
@@ -70,6 +70,13 @@ class Application(Starlette):
         self.router.lifespan.add_event_handler("startup", self._startup)
         self.router.lifespan.add_event_handler("shutdown", self._shutdown)
 
+        try:
+            self._register_packages()
+        except Exception as e:
+            self.log.exception(e)
+            self.log.critical("Fatal error during bootstrapping")
+            return
+
     def _register_packages(self):
         self.registry.register_packages(self.__packages)
 
@@ -78,13 +85,6 @@ class Application(Starlette):
 
         if not self.__packages:
             self.log.warning(f"No Packages loaded")
-            return
-
-        try:
-            self._register_packages()
-        except Exception as e:
-            self.log.exception(e)
-            self.log.critical("Fatal error during bootstrapping")
             return
 
         total, failed = await self.registry.call_startup_handlers()
