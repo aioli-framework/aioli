@@ -55,9 +55,6 @@ class Package:
     meta = None
     log: logging.Logger
 
-    services = []
-    controllers = []
-
     def __init__(
         self,
         meta=None,
@@ -76,6 +73,9 @@ class Package:
 
         self._services = services
         self._controllers = controllers
+
+        self.services = []
+        self.controllers = []
 
         if config is None:
             self.config_schema = PackageConfigSchema
