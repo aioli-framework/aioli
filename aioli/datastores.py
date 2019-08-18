@@ -28,7 +28,7 @@ class MemoryStore(metaclass=StoreMeta):
 
 
 class FileStore(metaclass=StoreMeta):
-    _db_path = ".aioli-state"
+    _db_path = ".aioli"
 
     def __init__(self, name, lifetime_secs=math.inf):
         self._name = name
