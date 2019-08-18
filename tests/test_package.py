@@ -18,9 +18,9 @@ def test_configschema_valid(get_pkg):
     class Config(PackageConfigSchema):
         pass
 
-    assert get_pkg()._conf_schema == PackageConfigSchema
-    assert get_pkg(config=None)._conf_schema == PackageConfigSchema
-    assert get_pkg(config=Config)._conf_schema == Config
+    assert get_pkg().config_schema == PackageConfigSchema
+    assert get_pkg(config=None).config_schema == PackageConfigSchema
+    assert get_pkg(config=Config).config_schema == Config
 
 
 def test_configschema_invalid(get_pkg):
@@ -48,8 +48,8 @@ def test_services_register_valid(pkg):
     assert Service1 in registered
     assert Service2 in registered
 
-    assert pkg(services=[]).services == set()
-    assert pkg(services=None).services == set()
+    assert pkg(services=[]).services == []
+    assert pkg(services=None).services == []
 
 
 def test_services_register_invalid(pkg):
@@ -78,8 +78,8 @@ def test_http_controllers_valid(pkg):
     assert HttpController1 in registered
     assert HttpController2 in registered
 
-    assert pkg(controllers=[]).controllers == set()
-    assert pkg(controllers=None).controllers == set()
+    assert pkg(controllers=[]).controllers == []
+    assert pkg(controllers=None).controllers == []
 
 
 def test_controllers_invalid(pkg):
