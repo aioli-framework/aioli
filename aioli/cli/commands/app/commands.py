@@ -16,7 +16,7 @@ def app_new(ctx, **kwargs):
     pass
 
 
-@app_group.command("start", help="Start the development server")
+@app_group.command("start", help="Start a development server")
 @click.option("--host", help="Bind socket to this host", default="127.0.0.1", show_default=True, type=str)
 @click.option("--port",  help="Bind socket to this port", default="5000", show_default=True, type=int)
 @click.option("--no_reload", help="Disable reloader", default=False, is_flag=True)
@@ -29,7 +29,7 @@ def app_new(ctx, **kwargs):
     show_default=True,
     type=str
 )
-def dev_start(path, host, port, **kwargs):
+def start(path, host, port, **kwargs):
     config = importer.import_from_string(path).config
 
     run_server(

@@ -243,9 +243,3 @@ def pkg_list(ctx, **kwargs):
         )
     )
 
-
-@pkg_group.command("new", short_help="Create new Package")
-@click.pass_context
-def pkg_new(ctx, **kwargs):
-    pass
-
