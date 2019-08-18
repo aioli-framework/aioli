@@ -21,7 +21,7 @@ class PackageConfig:
         self._data = schema(name).load(data)
 
     def get(self, item, fallback):
-        return self._data.get(item, fallback)
+        return self._data.get(item) or fallback
 
     def __getitem__(self, item):
         return self._data[item]
