@@ -15,16 +15,19 @@ class StoreMeta(type):
 
 
 class MemoryStore(metaclass=StoreMeta):
-    __state = {}
+    __store = {}
 
     def __init__(self, name):
         self.name = name
 
+    def __iter__(self):
+        yield from self.__store
+
     def __setitem__(self, key, value):
-        self.__state[key] = value
+        self.__store[key] = value
 
     def __getitem__(self, item):
-        return self.__state.get(item)
+        return self.__store.get(item)
 
 
 class FileStore(metaclass=StoreMeta):

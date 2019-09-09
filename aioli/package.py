@@ -50,10 +50,11 @@ class Package:
 
     app = None
     name = None
-    state = None
-    config = {}
     meta = None
     log: logging.Logger
+    config = {}
+
+    memory = None
 
     def __init__(
         self,
@@ -156,7 +157,7 @@ class Package:
 
     def register(self, app):
         self.name = name = self.meta["name"]
-        self.state = MemoryStore(name)
+        self.memory = MemoryStore(name)
 
         self.app = app
         self.log = logging.getLogger(f"aioli.pkg.{name}")
