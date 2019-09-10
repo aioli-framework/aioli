@@ -1,16 +1,14 @@
 import pytest
 
-from aioli.controller import BaseHttpController, BaseWebSocketController
+from aioli.controller import BaseHttpController
 from aioli.service import BaseService
 from aioli.config import PackageConfigSchema
 
 
 from aioli.exceptions import (
     BootstrapException,
-    InvalidPackageName,
-    InvalidPackageVersion,
-    InvalidPackagePath,
-    InvalidPackageDescription
+    PackageConfigError,
+    PackageMetaError,
 )
 
 
@@ -107,32 +105,21 @@ def test_version_valid(pkg):
 
 
 def test_version_invalid(pkg):
-    with pytest.raises(InvalidPackageVersion):
-        pkg(version="*")
+    def assert_version_invalid(value):
+        with pytest.raises(PackageMetaError):
+            pkg(version=value)
 
-    with pytest.raises(InvalidPackageVersion):
-        pkg(version=">=1.2.3")
+        return True
 
-    with pytest.raises(InvalidPackageVersion):
-        pkg(version="~1.2.3")
-
-    with pytest.raises(InvalidPackageVersion):
-        pkg(version="~1.2")
-
-    with pytest.raises(InvalidPackageVersion):
-        pkg(version="^0.2.4")
-
-    with pytest.raises(InvalidPackageVersion):
-        pkg(version="<2.0.0")
-
-    with pytest.raises(InvalidPackageVersion):
-        pkg(version="1.0")
-
-    with pytest.raises(InvalidPackageVersion):
-        pkg(version="1")
-
-    with pytest.raises(InvalidPackageVersion):
-        pkg(version="a.b.c")
+    assert assert_version_invalid("*")
+    assert assert_version_invalid(">=1.2.3")
+    assert assert_version_invalid("~1.2.3")
+    assert assert_version_invalid("~1.2")
+    assert assert_version_invalid("^0.2.4")
+    assert assert_version_invalid("<2.0.0")
+    assert assert_version_invalid("1.0")
+    assert assert_version_invalid("1")
+    assert assert_version_invalid("a.b.c")
 
 
 def test_path_valid(pkg):
@@ -143,23 +130,18 @@ def test_path_valid(pkg):
 
 
 def test_path_invalid(pkg):
-    with pytest.raises(InvalidPackagePath):
-        pkg(conf_path="test")
+    def assert_path_invalid(value):
+        with pytest.raises(PackageConfigError):
+            pkg(conf_path=value)
 
-    with pytest.raises(InvalidPackagePath):
-        pkg(conf_path="\\test")
+        return True
 
-    with pytest.raises(InvalidPackagePath):
-        pkg(conf_path="\\test\\")
-
-    with pytest.raises(InvalidPackagePath):
-        pkg(conf_path="test/")
-
-    with pytest.raises(InvalidPackagePath):
-        pkg(conf_path="/test/")
-
-    with pytest.raises(InvalidPackagePath):
-        pkg(conf_path="/test.test")
+    assert assert_path_invalid("test")
+    assert assert_path_invalid("\\test")
+    assert assert_path_invalid("\\test\\")
+    assert assert_path_invalid("test/")
+    assert assert_path_invalid("/test/")
+    assert assert_path_invalid("/test.test")
 
 
 def test_name_valid(pkg):
@@ -171,35 +153,22 @@ def test_name_valid(pkg):
 
 
 def test_name_invalid(pkg):
-    with pytest.raises(InvalidPackageName):
-        pkg(name="aioli")
+    def assert_name_invalid(value):
+        with pytest.raises(PackageMetaError):
+            pkg(name=value)
 
-    with pytest.raises(InvalidPackageName):
-        pkg(name="aioli_core")
+        return True
 
-    with pytest.raises(InvalidPackageName):
-        pkg(name="x" * 43)
-
-    with pytest.raises(InvalidPackageName):
-        pkg(name="test-test")
-
-    with pytest.raises(InvalidPackageName):
-        pkg(name="/test")
-
-    with pytest.raises(InvalidPackageName):
-        pkg(name="test^test")
-
-    with pytest.raises(InvalidPackageName):
-        pkg(name="test=test")
-
-    with pytest.raises(InvalidPackageName):
-        pkg(name="test/test")
-
-    with pytest.raises(InvalidPackageName):
-        pkg(name="test__")
-
-    with pytest.raises(InvalidPackageName):
-        pkg(name="__test")
+    assert assert_name_invalid("aioli")
+    assert assert_name_invalid("aioli_core")
+    assert assert_name_invalid("x" * 43)
+    assert assert_name_invalid("test-test")
+    assert assert_name_invalid("/test")
+    assert assert_name_invalid("test^test")
+    assert assert_name_invalid("test=test")
+    assert assert_name_invalid("test/test")
+    assert assert_name_invalid("test__")
+    assert assert_name_invalid("__test")
 
 
 def test_description_valid(pkg):
@@ -208,5 +177,7 @@ def test_description_valid(pkg):
 
 
 def test_description_invalid(pkg):
-    with pytest.raises(InvalidPackageDescription):
+    with pytest.raises(PackageMetaError) as excinfo:
         pkg(description="a" * 257)
+
+    assert "description" in excinfo.value.errors.keys()

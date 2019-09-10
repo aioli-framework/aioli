@@ -24,7 +24,7 @@ def app_new(ctx, **kwargs):
 @click.option("--workers", help="Number of workers", show_default=True, default=1, type=int)
 @click.option(
     "--path",
-    help="Example: app=Application(...) in my_proj/__main__.py becomes --path my_proj:app",
+    help="Path to the Application to run",
     required=True,
     show_default=True,
     type=str

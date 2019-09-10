@@ -1,12 +1,12 @@
 import logging
 import importlib
 
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, ValidationError
 
 from .config import PackageConfigSchema
 from .controller import BaseHttpController
 from .datastores import MemoryStore
-from .exceptions import BootstrapException
+from .exceptions import BootstrapException, PackageConfigError
 from .service import BaseService
 from .validation import (
     validate_name,
@@ -162,8 +162,11 @@ class Package:
         self.app = app
         self.log = logging.getLogger(f"aioli.pkg.{name}")
 
-        config = self.config = app.registry.get_config(name, self.config_schema)
-        config["path"] = validate_path(config.get("path", f"/{name}"))
+        try:
+            config = self.config = app.registry.get_config(name, self.config_schema)
+            config["path"] = validate_path(config.get("path", f"/{name}"))
+        except ValidationError as e:
+            raise PackageConfigError(e.__dict__, package=self.name)
 
         self._register_services()
         self._register_controllers()

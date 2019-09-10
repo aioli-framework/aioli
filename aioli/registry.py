@@ -5,8 +5,14 @@ import configparser
 from enum import Enum
 
 from importlib_metadata import metadata
+from marshmallow.exceptions import ValidationError
 
-from .exceptions import BootstrapException
+from .exceptions import (
+    BootstrapException,
+    PackageMetaError,
+    PackageConfigError
+)
+
 from .package import Package, PackageMetadata
 
 
@@ -18,7 +24,11 @@ class ComponentType(Enum):
 class PackageConfig:
     def __init__(self, name, data, schema):
         self.name = name
-        self._data = schema(name).load(data)
+
+        try:
+            self._data = schema(name).load(data)
+        except ValidationError as e:
+            raise PackageConfigError(e.__dict__, package=name)
 
     def get(self, item, fallback):
         return self._data.get(item) or fallback
@@ -63,11 +73,9 @@ class ImportRegistry:
         registerables = set(registerables)
 
         for registerable in registerables:
-            if isinstance(registerable, Package):
-                package = registerable
-            elif hasattr(registerable, "export"):
-                package = registerable.export
-            else:
+            package = registerable.export if hasattr(registerable, "export") else registerable
+
+            if not isinstance(package, Package):
                 raise BootstrapException(
                     f"Expected an Aioli-type Python Package, or an aioli.Package, got: {registerable}"
                 )
@@ -94,17 +102,14 @@ class ImportRegistry:
             elif package._meta:
                 meta = package._meta
             else:
-                raise BootstrapException(f"Unable to find metadata for {registerable}")
+                raise BootstrapException(f"Unable to locate metadata for {registerable}")
 
             try:
                 package.meta = PackageMetadata().load(meta)
-            except BootstrapException as e:
-                self.log.exception(e)
-                raise
-
-            self.log.info("Attaching {name}/{version}".format(**package.meta))
-
-            package.register(self._app)
+                self.log.info("Attaching {name}/{version}".format(**package.meta))
+                package.register(self._app)
+            except ValidationError as e:
+                raise PackageMetaError(e.__dict__, package=registerable)
 
             self.imported.append(package)
 

@@ -9,24 +9,24 @@ class BootstrapException(Exception):
     pass
 
 
-class ConfigValidationError(BootstrapException):
-    pass
+class PackageValidationError(BootstrapException):
+    message = None
+
+    def __init__(self, data, package):
+        self.package = package
+        self.errors = data["messages"]
 
 
-class InvalidPackagePath(BootstrapException):
-    pass
+class PackageMetaError(PackageValidationError):
+    def __init__(self, *args, package, **kwargs):
+        super(PackageMetaError, self).__init__(*args, package, **kwargs)
+        self.message = f"Package {package} failed metadata validation"
 
 
-class InvalidPackageVersion(BootstrapException):
-    pass
-
-
-class InvalidPackageName(BootstrapException):
-    pass
-
-
-class InvalidPackageDescription(BootstrapException):
-    pass
+class PackageConfigError(PackageValidationError):
+    def __init__(self, *args, package, **kwargs):
+        super(PackageConfigError, self).__init__(*args, package, **kwargs)
+        self.message = f"Package {package} failed configuration validation"
 
 
 class AioliException(HTTPException):

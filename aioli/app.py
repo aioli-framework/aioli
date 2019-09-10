@@ -1,7 +1,6 @@
 import logging
 import logging.config
 
-
 from json.decoder import JSONDecodeError
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
@@ -70,15 +69,10 @@ class Application(Starlette):
         self.router.lifespan.add_event_handler("startup", self._startup)
         self.router.lifespan.add_event_handler("shutdown", self._shutdown)
 
-        try:
-            self._register_packages()
-        except Exception as e:
-            self.log.exception(e)
-            self.log.critical("Fatal error during bootstrapping")
-            return
+        self._load_packages()
 
-    def _register_packages(self):
-        self.registry.register_packages(self.__packages)
+    def _load_packages(self):
+        return self.registry.register_packages(self.__packages)
 
     async def _startup(self):
         self.log.info("Commencing countdown, engines on")

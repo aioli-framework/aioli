@@ -1,11 +1,7 @@
 import re
 
-from .exceptions import (
-    InvalidPackagePath,
-    InvalidPackageName,
-    InvalidPackageVersion,
-    InvalidPackageDescription
-)
+from marshmallow.exceptions import ValidationError
+
 
 # Reserved Package names
 NAMES_RESERVED = ["aioli", "aioli_core"]
@@ -30,30 +26,30 @@ PATH_REGEX = re.compile(r"^/[a-zA-Z0-9-_]*$")
 
 def validate_path(value):
     if not PATH_REGEX.match(value):
-        raise InvalidPackagePath(f"Path {value} contains invalid characters")
+        raise ValidationError(f"Path {value} contains invalid characters")
 
     return value
 
 
 def validate_version(value):
     if not VERSION_REGEX.match(value):
-        raise InvalidPackageVersion(f"Version {value} is invalid, must be Semantic Versioning string")
+        raise ValidationError(f"Version {value} is invalid, must be Semantic Versioning string")
 
     return value
 
 
 def validate_name(value):
     if value in ["aioli", "aioli_core"]:
-        raise InvalidPackageName(f"Name {value} is reserved and cannot be used")
+        raise ValidationError(f"Name {value} is reserved and cannot be used")
     elif not NAME_REGEX.match(value) or len(value) > 42:
-        raise InvalidPackageName(f"Name {value} is invalid. It may contain up to "
-                                 f"42 lowercase alphanumeric and underscore characters.")
+        raise ValidationError(f"Name {value} is invalid. It may contain up to "
+                              f"42 lowercase alphanumeric and underscore characters.")
 
     return value
 
 
 def validate_description(value):
     if len(value) > 256:
-        raise InvalidPackageDescription(f"Description {value} is invalid, can be at most 256 characters long")
+        raise ValidationError(f"Description {value} is invalid, can be at most 256 characters long")
 
     return value

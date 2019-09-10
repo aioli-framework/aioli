@@ -47,7 +47,7 @@ def pkg(get_app, get_pkg, logger):
             config = {export._meta["name"]: dict(path=conf_path)}
 
         app = get_app([export], config=config)
-        app._register_packages()
+        app._load_packages()
 
         return app.registry.imported[-1]
 
