@@ -1,5 +1,4 @@
 import logging
-import logging.config
 
 from json.decoder import JSONDecodeError
 from starlette.applications import Starlette
@@ -8,7 +7,6 @@ from starlette.middleware.cors import CORSMiddleware
 from marshmallow.exceptions import ValidationError
 
 from aioli.exceptions import HTTPException, AioliException, BootstrapException
-from aioli.log import LOGGING_CONFIG_DEFAULTS
 
 from .config import ApplicationConfigSchema
 from .registry import ImportRegistry
@@ -40,16 +38,11 @@ class Application(Starlette):
         self.__packages = packages
 
         try:
-            self.config = ApplicationConfigSchema().load(config.get("aioli_core", {}))
+            self.config = ApplicationConfigSchema().load(config.get("aioli-core", {}))
         except ValueError:
             raise BootstrapException("Application `config` must be a collection")
         except ValidationError as e:
             raise BootstrapException(f"Configuration validation error: {e.messages}")
-
-        for name, logger in LOGGING_CONFIG_DEFAULTS['loggers'].items():
-            self.log_level = logger['level'] = 'DEBUG' if self.config.get('debug') else 'INFO'
-
-        logging.config.dictConfig(LOGGING_CONFIG_DEFAULTS)
 
         self.registry = ImportRegistry(self, config)
 
@@ -69,14 +62,11 @@ class Application(Starlette):
         self.router.lifespan.add_event_handler("startup", self._startup)
         self.router.lifespan.add_event_handler("shutdown", self._shutdown)
 
-        self._load_packages()
-
-    def _load_packages(self):
-        return self.registry.register_packages(self.__packages)
+    def load_packages(self):
+        self.log.info("Commencing countdown, engines on")
+        self.registry.register_packages(self.__packages)
 
     async def _startup(self):
-        self.log.info("Commencing countdown, engines on")
-
         if not self.__packages:
             self.log.warning(f"No Packages loaded")
             return

@@ -1,6 +1,6 @@
-from aioli.cli import cli_app
+from aioli.cli import cli_root
 
 
 if __name__ == '__main__':
-    cli_app(prog_name='aioli')
+    cli_root(prog_name='aioli')
 

@@ -1,2 +1,4 @@
-from .pkg.commands import pkg_group
-from .app.commands import app_group
+from .root import cli_root
+from .pkg import cli_pkg
+
+cli_root.add_command(cli_pkg)

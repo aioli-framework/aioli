@@ -1,10 +1,10 @@
 from collections import namedtuple
 from pathlib import Path
 
+import yaml
 import click
 import texttable
 
-from yaml import dump
 from aioli import package_state
 from poetry.utils.env import Env
 
@@ -52,6 +52,27 @@ class PackageSchema(Schema):
 
 
 Repository = namedtuple("Repository", ["local", "remote"])
+
+
+def produce_row(item, columns):
+    for c in columns:
+        if c in ["official", "installed"]:
+            yield "YES" if item[c] else "NO"
+        else:
+            yield item[c]
+
+
+def make_table(items):
+    table = texttable.Texttable()
+
+    columns = ["name", "description", "official", "installed"]
+    table.add_row(columns)
+
+    for item in items.values():
+        row = produce_row(item, columns)
+        table.add_row(list(row))
+
+    return table
 
 
 class PackageIndex:
@@ -137,60 +158,29 @@ class PackageIndex:
         return pkg_full
 
 
-def get_table_row(item, columns):
-    for c in columns:
-        if c in ["official", "installed"]:
-            yield "YES" if item[c] else "NO"
-        else:
-            yield item[c]
+def get_many(ctx, **kwargs):
+    pkg = ctx.obj["pkg"]
+    pkgs = pkg.get_many(**kwargs)
 
+    if not pkgs:
+        raise CommandException("No Aioli packages found")
 
-def get_table(items):
-    table = texttable.Texttable()
+    table = make_table(pkgs)
 
-    columns = ["name", "description", "official", "installed"]
-    table.add_row(columns)
-
-    for item in items.values():
-        row = get_table_row(item, columns)
-        table.add_row(list(row))
-
-    return table
-
-
-@click.group(name="pkg", short_help="Work with packages of all sorts")
-@click.pass_context
-def pkg_group(ctx):
-    path = Path(".")
-    ctx.obj["idx"] = PackageIndex(path)
-
-
-@pkg_group.group(name="index", short_help="Package Index")
-def pkg_idx_group():
-    pass
-
-
-@pkg_idx_group.command("help", short_help="Package help")
-@click.pass_context
-def pkg_ext_info(ctx, **kwargs):
-    print(
-        "\n".join([
-            f"Extension Packages",
-            "===",
-            "This CLI for showing information about third party and official",
-            "Aioli Packages available on the Python Package Index.\n",
-            "Use your favorite Python packaging tool to install a Package:",
-            "$ pip install aioli-rdbms\n",
-        ])
+    return (
+        "\n".join(
+            [
+                "",
+                table.draw(),
+                "\nShow details about a package: aioli pkg pypi show <PKG_NAME>\n",
+            ]
+        )
     )
 
 
-@pkg_idx_group.command("show", short_help="Aioli package details")
-@click.argument("pkg_name")
-@click.pass_context
-def pkg_show(ctx, pkg_name):
-    idx = ctx.obj["idx"]
-    pkg = idx.get_one(pkg_name)
+def get_one(ctx, pkg_name):
+    pkg = ctx.obj["pkg"]
+    pkg = pkg.get_one(pkg_name)
     name = pkg["name"]
     underline = "=" * len(name)
 
@@ -205,7 +195,7 @@ def pkg_show(ctx, pkg_name):
 
     del pkg["version"]
 
-    props = dump(dict(
+    props = yaml.dump(dict(
         description=pkg["description"],
         author="{0} <{1}>".format(pkg.pop("author"), pkg.pop("author_email")),
         license=pkg["license"],
@@ -213,33 +203,32 @@ def pkg_show(ctx, pkg_name):
         releases=sorted(releases, reverse=True)[:4],
     ), sort_keys=False)
 
-    print(
+    return (
         "\n".join(
             [
-                f"{name}\n{underline}",
+                f"\n{name}\n{underline}",
                 props,
+                f"Install {name} using your favorite PyPI Package Manager!"
             ]
         )
     )
 
 
-@pkg_idx_group.command("list", short_help="List of Aioli Packages")
+@click.group(name="pypi", short_help="Packages available on PyPI")
 @click.pass_context
-def pkg_list(ctx, **kwargs):
-    idx = ctx.obj["idx"]
-    pkgs = idx.get_many(**kwargs)
+def cli_pypi(ctx):
+    path = Path(".")
+    ctx.obj["pkg"] = PackageIndex(path)
 
-    if not pkgs:
-        raise CommandException("No Aioli packages found")
 
-    table = get_table(pkgs)
+@cli_pypi.command("show", short_help="Package details")
+@click.argument("pkg_name")
+@click.pass_context
+def pypi_one(ctx, pkg_name):
+    print(get_one(ctx, pkg_name))
 
-    print(
-        "\n".join(
-            [
-                table.draw(),
-                "\nPackage details: aioli pkg show <PKG_NAME>\n",
-            ]
-        )
-    )
 
+@cli_pypi.command("list", short_help="List Packages")
+@click.pass_context
+def pypi_list(ctx):
+    print(get_many(ctx))

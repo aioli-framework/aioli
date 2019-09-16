@@ -42,30 +42,21 @@ class PackageConfig:
 
 class ImportRegistry:
     imported = []
-    integrations = {}
     log = logging.getLogger("aioli.pkg")
 
     def __init__(self, app, config):
         self._config = config
         self._app = app
 
-    def _get_components(self, comp_type, pkg_name=None):
-        comp_type = ComponentType(comp_type).name
+    def get_import(self, name):
+        for imported in self.imported:
+            if name == imported.name:
+                return imported
 
-        if pkg_name:
-            return getattr(self.imported[pkg_name], comp_type)
+        raise RuntimeError(f"Package {name} is not attached to this application")
 
-        comps = []
-
-        for _, module in self.imported:
-            comps += getattr(module.export, comp_type)
-
-        return comps
-
-    def get_services(self, pkg_name=None):
-        return [(svc.__class__, svc) for svc in self._get_components("service", pkg_name)]
-
-    def get_config(self, pkg_name, schema_cls):
+    def get_config(self, module_name, schema_cls):
+        pkg_name = module_name.replace("_", "-")
         data = self._config.get(pkg_name, {})
         return PackageConfig(pkg_name, data, schema_cls)
 
@@ -95,7 +86,7 @@ class ImportRegistry:
                 elif hasattr(registerable, "__name__"):  # Meta from dist
                     dist = dict(metadata(registerable.__name__))
                     meta = dict(
-                        name=dist.get("Name").replace("-", "_"),
+                        name=dist.get("Name"),
                         version=dist.get("Version"),
                         description=dist.get("Summary")
                     )

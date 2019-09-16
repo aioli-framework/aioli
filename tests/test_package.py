@@ -125,7 +125,6 @@ def test_version_invalid(pkg):
 def test_path_valid(pkg):
     assert pkg(conf_path="/test").config["path"] == "/test"
     assert pkg(conf_path="/test123").config["path"] == "/test123"
-    assert pkg(conf_path="/test_test").config["path"] == "/test_test"
     assert pkg(conf_path="/test-test").config["path"] == "/test-test"
 
 
@@ -148,7 +147,7 @@ def test_name_valid(pkg):
     len_name_str = "x" * 42
 
     assert pkg(name="test").meta["name"] == "test"
-    assert pkg(name="test1_test2_test3").meta["name"] == "test1_test2_test3"
+    assert pkg(name="test1-test2-test3").meta["name"] == "test1-test2-test3"
     assert pkg(name=len_name_str).meta["name"] == len_name_str
 
 
@@ -160,9 +159,9 @@ def test_name_invalid(pkg):
         return True
 
     assert assert_name_invalid("aioli")
-    assert assert_name_invalid("aioli_core")
+    assert assert_name_invalid("aioli-core")
     assert assert_name_invalid("x" * 43)
-    assert assert_name_invalid("test-test")
+    assert assert_name_invalid("test_test")
     assert assert_name_invalid("/test")
     assert assert_name_invalid("test^test")
     assert assert_name_invalid("test=test")

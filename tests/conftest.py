@@ -10,7 +10,7 @@ def get_pkg():
             *args,
             meta=dict(
                 version=kwargs.pop("version", "0.1.0"),
-                name=kwargs.pop("name", "pkg_name"),
+                name=kwargs.pop("name", "pkg-name"),
                 description=kwargs.pop("description", "pkg_description")
             ),
             **kwargs,
@@ -47,7 +47,7 @@ def pkg(get_app, get_pkg, logger):
             config = {export._meta["name"]: dict(path=conf_path)}
 
         app = get_app([export], config=config)
-        app._load_packages()
+        app.load_packages()
 
         return app.registry.imported[-1]
 

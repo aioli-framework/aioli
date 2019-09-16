@@ -1,8 +1,14 @@
 import sys
 
+import logging
+import logging.config
+
+from copy import copy
+
+
 LOGGING_CONFIG_DEFAULTS = dict(
     version=1,
-    disable_existing_loggers=False,
+    disable_existing_loggers=True,
     loggers={
         "root": {
             "level": "WARN",
@@ -60,3 +66,12 @@ LOGGING_CONFIG_DEFAULTS = dict(
         },
     },
 )
+
+
+def setup_logging(level):
+    config = copy(LOGGING_CONFIG_DEFAULTS)
+
+    for name, logger in config['loggers'].items():
+        logger['level'] = level.upper() if level else logging.WARN
+
+    logging.config.dictConfig(config)

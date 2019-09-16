@@ -4,10 +4,10 @@ from marshmallow.exceptions import ValidationError
 
 
 # Reserved Package names
-NAMES_RESERVED = ["aioli", "aioli_core"]
+NAMES_RESERVED = ["aioli", "aioli-core"]
 
 # Allowed Package name format
-NAME_REGEX = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)*$")
+NAME_REGEX = re.compile(r"^[a-z0-9]+(?:[-][a-z0-9]+)*$")
 
 # Semantic version regex
 # 1 - Major
@@ -21,7 +21,7 @@ VERSION_REGEX = re.compile(
 
 
 # Allowed Package path format
-PATH_REGEX = re.compile(r"^/[a-zA-Z0-9-_]*$")
+PATH_REGEX = re.compile(r"^/[a-zA-Z0-9-]*$")
 
 
 def validate_path(value):
@@ -39,7 +39,7 @@ def validate_version(value):
 
 
 def validate_name(value):
-    if value in ["aioli", "aioli_core"]:
+    if value in ["aioli", "aioli-core"]:
         raise ValidationError(f"Name {value} is reserved and cannot be used")
     elif not NAME_REGEX.match(value) or len(value) > 42:
         raise ValidationError(f"Name {value} is invalid. It may contain up to "
