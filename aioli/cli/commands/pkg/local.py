@@ -70,12 +70,15 @@ def make_table(items):
 
 
 def format_controller(ctrl):
-    handlers = ctrl.handlers
-    return [hdlr.name for func, hdlr in handlers]
+    controller = []
+    for _, handler in ctrl.handlers:
+        controller.append(f"{handler.method} => {handler.path} ~ {handler.description}")
+
+    return controller
 
 
 def get_one(ctx, pkg_name):
-    pkg = ctx.obj["app"].registry.get_import(pkg_name)
+    pkg = ctx.obj["app"].obj.registry.get_import(pkg_name)
     meta = pkg.meta
     name_underline = "=" * len(pkg_name)
 
@@ -83,7 +86,8 @@ def get_one(ctx, pkg_name):
         description=meta["description"],
         version=meta["version"],
         path=pkg.config["path"],
-        controllers=[format_controller(ctrl) for ctrl in pkg.controllers]
+        controllers={ctrl.__class__.__name__: format_controller(ctrl) for ctrl in pkg.controllers},
+        services=[svc.__class__.__name__ for svc in pkg.services]
     ), sort_keys=False)
 
     return (
@@ -97,17 +101,13 @@ def get_one(ctx, pkg_name):
 
 
 def get_many(ctx):
-    items = ctx.obj["app"].registry.imported
+    items = ctx.obj["app"].obj.registry.imported
     return make_table(items).draw()
 
 
 @click.group(name="attached", short_help="Manage attached packages")
-@click.option("--app_path", help="Application to work with", required=True)
-@click.pass_context
-def cli_local(ctx, app_path):
-    app = importer.import_from_string(app_path)
-    app.load_packages()
-    ctx.obj["app"] = app
+def cli_local():
+    pass
 
 
 @cli_local.command("show", short_help="Package details")

@@ -1,3 +1,4 @@
+from sys import stdout
 from collections import namedtuple
 from pathlib import Path
 
@@ -5,7 +6,7 @@ import yaml
 import click
 import texttable
 
-from aioli import package_state
+from aioli import package_state, PYPI_LIFETIME_SECS
 from poetry.utils.env import Env
 
 from marshmallow import Schema, fields
@@ -112,6 +113,8 @@ class PackageIndex:
         if not force_refresh and pkgs:
             return package_state["pypi_all"]
 
+        stdout.write("\nPulling fresh data from PyPI...")
+
         query.update({"keywords": [PKG_KEYWORD]})
 
         # Get all Aioli Packages
@@ -120,6 +123,7 @@ class PackageIndex:
         # "tag" official Aioli packages *sigh*
         new_state.update(dict([p for p in self._pull(**query, authors=[PKG_AUTHOR])]))
 
+        stdout.write(f"storing for {PYPI_LIFETIME_SECS}s\n")
         package_state["pypi_all"] = new_state
 
         return new_state
@@ -167,15 +171,7 @@ def get_many(ctx, **kwargs):
 
     table = make_table(pkgs)
 
-    return (
-        "\n".join(
-            [
-                "",
-                table.draw(),
-                "\nShow details about a package: aioli pkg pypi show <PKG_NAME>\n",
-            ]
-        )
-    )
+    return "\n" + table.draw() + "\n"
 
 
 def get_one(ctx, pkg_name):
@@ -208,7 +204,6 @@ def get_one(ctx, pkg_name):
             [
                 f"\n{name}\n{underline}",
                 props,
-                f"Install {name} using your favorite PyPI Package Manager!"
             ]
         )
     )
@@ -232,3 +227,9 @@ def pypi_one(ctx, pkg_name):
 @click.pass_context
 def pypi_list(ctx):
     print(get_many(ctx))
+
+
+@cli_pypi.command("download", short_help="Download package")
+@click.pass_context
+def pypi_download(ctx):
+    pass

@@ -5,8 +5,7 @@ from .local import cli_local
 
 
 @click.group(name="pkg", short_help="Package Management")
-@click.pass_context
-def cli_pkg(ctx):
+def cli_pkg():
     pass
 
 
