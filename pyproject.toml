@@ -42,4 +42,4 @@ requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
 
 [tool.poetry.scripts]
-aioli = "aioli.__main__"
+aioli = "aioli.cli:run"

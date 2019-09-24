@@ -1,6 +1,4 @@
-from aioli.cli import cli_root
+from aioli import cli
 
-
-if __name__ == '__main__':
-    cli_root(prog_name='aioli')
-
+if __name__ == "__main__":
+    cli.run()

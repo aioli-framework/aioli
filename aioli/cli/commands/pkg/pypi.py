@@ -6,7 +6,9 @@ import yaml
 import click
 import texttable
 
-from aioli import package_state, PYPI_LIFETIME_SECS
+from aioli.cli import config, utils
+from aioli.datastores import FileStore
+
 from poetry.utils.env import Env
 
 from marshmallow import Schema, fields
@@ -17,14 +19,14 @@ from poetry.repositories.exceptions import PackageNotFound
 
 from aioli.exceptions import CommandException
 
+
 # Package author, when looking for official packages
 PKG_AUTHOR = "aioli"
 
 # Package keyword, used for Aioli packages
 PKG_KEYWORD = "aioli_package"
 
-# Package cache lifetime in seconds
-PKG_CACHE_SECS = 10
+package_state = FileStore("packages", lifetime_secs=config.PYPI_LIFETIME_SECS)
 
 
 class PackageRelease(Schema):
@@ -123,7 +125,7 @@ class PackageIndex:
         # "tag" official Aioli packages *sigh*
         new_state.update(dict([p for p in self._pull(**query, authors=[PKG_AUTHOR])]))
 
-        stdout.write(f"storing for {PYPI_LIFETIME_SECS}s\n")
+        stdout.write(f"storing for {config.PYPI_LIFETIME_SECS}s\n")
         package_state["pypi_all"] = new_state
 
         return new_state
@@ -178,8 +180,6 @@ def get_one(ctx, pkg_name):
     pkg = ctx.obj["pkg"]
     pkg = pkg.get_one(pkg_name)
     name = pkg["name"]
-    underline = "=" * len(name)
-
     releases = []
 
     for release in pkg.pop("releases"):
@@ -202,7 +202,7 @@ def get_one(ctx, pkg_name):
     return (
         "\n".join(
             [
-                f"\n{name}\n{underline}",
+                f"\n{name}\n{utils.get_underline(name)}",
                 props,
             ]
         )
@@ -232,4 +232,4 @@ def pypi_list(ctx):
 @cli_pypi.command("download", short_help="Download package")
 @click.pass_context
 def pypi_download(ctx):
-    pass
+    print("Work in progress")

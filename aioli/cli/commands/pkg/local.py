@@ -121,5 +121,3 @@ def local_one(ctx, pkg_name):
 @click.pass_context
 def local_list(ctx):
     print(get_many(ctx))
-
-    # print(get_many(ctx))

@@ -3,8 +3,8 @@ import click
 from click_repl import repl
 from uvicorn.importer import import_from_string
 
+from aioli import cli
 from aioli.servers import uvicorn_server
-from aioli.cli import config
 
 
 class ApplicationModel:
@@ -67,8 +67,8 @@ def open_shell(ctx):
             del ctx.parent.command.params[idx]
 
     settings = dict(
-        color_depth=config.PROMPT_COLOR_DEPTH,
-        style=config.PROMPT_STYLE,
+        color_depth=cli.config.PROMPT_COLOR_DEPTH,
+        style=cli.config.PROMPT_STYLE,
         message=[
             ("class:prompt-name", f"[{app_name}]"),
             ("class:prompt-marker", u"> "),
@@ -78,7 +78,7 @@ def open_shell(ctx):
     repl(ctx, prompt_kwargs=settings)
 
 
-@cli_root.command("start", help="Start a development server")
+@cli_root.command("start", short_help="Start a development server")
 @click.option("--host", help="Bind socket to this host", default="127.0.0.1", show_default=True, type=str)
 @click.option("--port",  help="Bind socket to this port", default="5000", show_default=True, type=int)
 @click.option("--no_reload", help="Disable reloader", default=False, is_flag=True)
@@ -97,7 +97,15 @@ def app_run(ctx, **kwargs):
     )
 
 
-@cli_root.command("new", short_help="Create Application")
+@cli_root.command("new", short_help="Create new Aioli application")
 @click.argument("app_name")
 def app_new(app_name):
-    print(app_name)
+    import aioli
+
+    print(aioli.__path__)
+
+
+@cli_root.command("help", short_help="Show help", hidden=True)
+@click.pass_context
+def show_help(ctx):
+    print(cli_root.get_help(ctx))

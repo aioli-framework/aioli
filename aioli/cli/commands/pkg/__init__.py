@@ -4,7 +4,7 @@ from .pypi import cli_pypi
 from .local import cli_local
 
 
-@click.group(name="pkg", short_help="Package Management")
+@click.group(name="pkg", short_help="Application Package Management")
 def cli_pkg():
     pass
 
