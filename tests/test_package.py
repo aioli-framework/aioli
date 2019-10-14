@@ -6,7 +6,7 @@ from aioli.config import PackageConfigSchema
 
 
 from aioli.exceptions import (
-    BootstrapException,
+    BootstrapError,
     PackageConfigError,
     PackageMetaError,
 )
@@ -22,16 +22,16 @@ def test_configschema_valid(get_pkg):
 
 
 def test_configschema_invalid(get_pkg):
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         get_pkg(config=False)
 
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         get_pkg(config={"test": "test"})
 
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         get_pkg(config=[])
 
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         get_pkg(config=[Exception])
 
 
@@ -51,16 +51,16 @@ def test_services_register_valid(pkg):
 
 
 def test_services_register_invalid(pkg):
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         pkg(services=False)
 
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         pkg(services={"test": "test"})
 
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         pkg(services=set())
 
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         pkg(services=[Exception])
 
 
@@ -81,16 +81,16 @@ def test_http_controllers_valid(pkg):
 
 
 def test_controllers_invalid(pkg):
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         pkg(controllers=False)
 
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         pkg(controllers={"test": "test"})
 
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         pkg(controllers=set())
 
-    with pytest.raises(BootstrapException):
+    with pytest.raises(BootstrapError):
         pkg(controllers=[Exception])
 
 

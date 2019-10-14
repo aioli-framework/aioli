@@ -1,94 +1,115 @@
 import click
+import yaml
 
+from os import getcwd
+
+from prompt_toolkit.history import FileHistory
 from click_repl import repl
-from uvicorn.importer import import_from_string
+from uvicorn.importer import import_from_string, ImportFromStringError
 
-from aioli import cli
+from aioli.app import Application
+from aioli.cli import utils, config
 from aioli.servers import uvicorn_server
+from aioli.exceptions import CommandError
+from aioli.datastores import FileStore
+from aioli.project import TemplateInstaller
 
 
-class ApplicationModel:
-    __path = None
-    __obj = None
-
-    @property
-    def path(self):
-        return self.__path
-
-    @path.setter
-    def path(self, value):
-        self.__obj = import_from_string(value)
-        self.__obj.load_packages()
-        self.__path = value
-
-    @property
-    def obj(self):
-        return self.__obj
+NON_SHELL_CMDS = ["attach", "create"]
 
 
-class MissingApplicationError(Exception):
-    pass
+class ProjectContext:
+    db = FileStore("project")
+    app_obj = None
+    units = {}
 
+    def __init__(self, app_path=None, root_dir=None):
+        if not root_dir:
+            self.root_dir = getcwd()
 
-def requires_app(func):
-    def func_wrapper(ctx, *args, **kwargs):
-        if ctx.obj["app"] is None:
-            raise MissingApplicationError(f"Command [{ctx.command.name}] requires an Application to be set")
+        self.app_path = app_path
 
-        return func(ctx, *args, **kwargs)
+    def sync_state(self):
+        """Write current app_path to file for persistence"""
 
-    return func_wrapper
+        self.db["app_path"] = self.app_path
+
+    def load(self, force=False):
+        """App loader
+
+        :param force: Load even if an app_obj is already set
+        """
+
+        if not self.app_path and self.db.get("app_path"):
+            self.app_path = self.db.get("app_path")
+        elif (self.app_obj and not force) or not self.app_path:
+            return
+
+        try:
+            app = self.app_obj = import_from_string(self.app_path)
+            if not isinstance(app, Application):
+                raise CommandError(f"Invalid app object. Expected: {Application}, Got: {app}")
+        except ImportFromStringError as err:
+            raise CommandError(f"Invalid path provided ({err})")
+
+        app.load_packages()
 
 
 @click.group(invoke_without_command=False)
-@click.option(
-    "--app_path",
-    help="Path to Application to operate on",
-    type=str
-)
+@click.option("--app_path", help="App to operate on")
 @click.pass_context
 def cli_root(ctx, app_path=None):
+    """~ Aioli Command Line Interface ~"""
+
     if ctx.obj is None:
-        ctx.obj = {
-            "app": ApplicationModel()
-        }
-    if app_path:
-        ctx.obj["app"].path = app_path
+        ctx.obj = ProjectContext(app_path)
+
+    ctx.obj.load()
 
 
-@cli_root.command("shell", help="Opens a shell for the given Application")
+@cli_root.command("attach", short_help="Attach application")
 @click.pass_context
-def open_shell(ctx):
-    app_name = ctx.obj["app"].path or "NO APP"
+def attach_app(ctx):
+    ctx.obj.sync_state()
+    click.echo(f"Attached {ctx.obj.app_path}")
 
-    # The shell handles app state; remove the "--app_path" root cli option.
+
+@cli_root.command("shell", help="Open application shell")
+@click.pass_context
+@utils.requires_app
+def open_shell(ctx):
     for idx, param in enumerate(ctx.parent.command.params):
         if param.name == "app_path":
             del ctx.parent.command.params[idx]
 
+    for cmd in NON_SHELL_CMDS:
+        del ctx.parent.command.commands[cmd]
+
     settings = dict(
-        color_depth=cli.config.PROMPT_COLOR_DEPTH,
-        style=cli.config.PROMPT_STYLE,
+        color_depth=config.PROMPT_COLOR_DEPTH,
+        style=config.PROMPT_STYLE,
+        history=FileHistory(".aioli.history"),
         message=[
-            ("class:prompt-name", f"[{app_name}]"),
+            ("class:prompt-name", f"[{ctx.obj.app_path}]"),
             ("class:prompt-marker", u"> "),
-        ]
+        ],
+        # completer=ContextualCompleter()
     )
 
     repl(ctx, prompt_kwargs=settings)
 
 
-@cli_root.command("start", short_help="Start a development server")
+@cli_root.command("start", short_help="Start development server")
 @click.option("--host", help="Bind socket to this host", default="127.0.0.1", show_default=True, type=str)
 @click.option("--port",  help="Bind socket to this port", default="5000", show_default=True, type=int)
 @click.option("--no_reload", help="Disable reloader", default=False, is_flag=True)
 @click.option("--no_debug", help="Disable debug mode", default=False, is_flag=True)
 @click.option("--workers", help="Number of workers", show_default=True, default=1, type=int)
 @click.pass_context
-@requires_app
+@utils.requires_app
 def app_run(ctx, **kwargs):
     uvicorn_server(
-        ctx.obj["app"].obj,
+        ctx.obj.app_obj,
         loop="uvloop",
         log_level="info" if kwargs.pop("no_debug") else "debug",
         reload=not kwargs.pop("no_reload"),
@@ -97,15 +118,49 @@ def app_run(ctx, **kwargs):
     )
 
 
-@cli_root.command("new", short_help="Create new Aioli application")
-@click.argument("app_name")
-def app_new(app_name):
-    import aioli
+@cli_root.command("create", short_help="Create project")
+@click.option(
+    "--dst_path",
+    default=".",
+    help="Directory in which to create the project defaults to current working directory"
+)
+@click.option("--confirm", help="Confirm project creation", is_flag=True)
+@click.argument("name")
+def project_new(name, dst_path, confirm):
+    if not confirm:
+        click.confirm(f"This will create a new project in {dst_path}/{name} --- continue?", default=True, abort=True)
 
-    print(aioli.__path__)
+    installer = TemplateInstaller(name, template_name="basic", parent_dir=dst_path)
+
+    header = utils.get_underlined(f"summary") + "\n"
+    body = installer.write_base()
+
+    click.echo(header + yaml.dump(body, sort_keys=False))
+
+
+@cli_root.command("dump", short_help="Dump current application")
+@click.pass_context
+@utils.requires_app
+def project_status(ctx):
+    proj = ctx.obj
+    header = utils.get_underlined("project state")
+
+    body = yaml.dump({
+        "path": proj.root_dir,
+        "export": proj.app_path,
+        "database": f"{ProjectContext.db.path}.db",
+        #"config": proj.appconfig,
+        #"metadata": proj.metadata,
+        "interfaces": {
+            "http": proj.app_obj.config["api_base"],
+        },
+        "units": [unit.name for unit in proj.app_obj.registry.imported]
+    }, sort_keys=False)
+
+    click.echo(f"{header}\n{body}")
 
 
 @cli_root.command("help", short_help="Show help", hidden=True)
 @click.pass_context
 def show_help(ctx):
-    print(cli_root.get_help(ctx))
+    click.echo(cli_root.get_help(ctx))

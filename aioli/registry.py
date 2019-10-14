@@ -8,7 +8,7 @@ from importlib_metadata import metadata
 from marshmallow.exceptions import ValidationError
 
 from .exceptions import (
-    BootstrapException,
+    BootstrapError,
     PackageMetaError,
     PackageConfigError
 )
@@ -48,6 +48,10 @@ class ImportRegistry:
         self._config = config
         self._app = app
 
+    def declare_package(self, package):
+        if package not in self.imported:
+            self.imported.append(package)
+
     def get_import(self, name):
         for imported in self.imported:
             if name == imported.name:
@@ -67,7 +71,7 @@ class ImportRegistry:
             package = registerable.export if hasattr(registerable, "export") else registerable
 
             if not isinstance(package, Package):
-                raise BootstrapException(
+                raise BootstrapError(
                     f"Expected an Aioli-type Python Package, or an aioli.Package, got: {registerable}"
                 )
 
@@ -93,7 +97,7 @@ class ImportRegistry:
             elif package._meta:
                 meta = package._meta
             else:
-                raise BootstrapException(f"Unable to locate metadata for {registerable}")
+                raise BootstrapError(f"Unable to locate metadata for {registerable}")
 
             try:
                 package.meta = PackageMetadata().load(meta)
@@ -102,7 +106,7 @@ class ImportRegistry:
             except ValidationError as e:
                 raise PackageMetaError(e.__dict__, package=registerable)
 
-            self.imported.append(package)
+            self.declare_package(package)
 
     async def call_startup_handlers(self):
         total = failed = 0

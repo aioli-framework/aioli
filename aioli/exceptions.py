@@ -1,15 +1,15 @@
 from starlette.exceptions import HTTPException
 
 
-class CommandException(Exception):
+class CommandError(Exception):
     pass
 
 
-class BootstrapException(Exception):
+class BootstrapError(Exception):
     pass
 
 
-class PackageValidationError(BootstrapException):
+class PackageValidationError(BootstrapError):
     message = None
 
     def __init__(self, data, package):

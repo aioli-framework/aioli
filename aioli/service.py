@@ -1,5 +1,5 @@
 from .component import Component, ComponentMeta
-from .exceptions import BootstrapException
+from .exceptions import BootstrapError
 
 
 class ServiceMeta(ComponentMeta):
@@ -41,7 +41,7 @@ class BaseService(Component, metaclass=ServiceMeta):
 
         if cls not in self._instances.keys():
             pkg_name = cls.__module__.split('.')[0]
-            raise BootstrapException(
+            raise BootstrapError(
                 f"Package {pkg_name}, used by Service {cls.__name__}, must be registered with the Application"
             )
 

@@ -67,4 +67,4 @@ class ApplicationConfigSchema(BaseConfigSchema):
     pretty_json = fields.Bool(missing=False)
     allow_origins = fields.List(fields.String(), missing=["*"])
     debug = fields.Bool(missing=False)
-    base_path = fields.String(missing="/api", attribute="api_base")
+    api_base = fields.String(missing="/api")

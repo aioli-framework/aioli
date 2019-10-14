@@ -1,7 +1,7 @@
 from starlette.endpoints import WebSocketEndpoint
 
 from aioli.component import Component, ComponentMeta
-from aioli.exceptions import BootstrapException
+from aioli.exceptions import BootstrapError
 from aioli.utils import format_path
 
 from .registry import handlers
@@ -14,7 +14,7 @@ class HttpControllerMeta(ComponentMeta):
 
         obj = cls._instances[cls]
 
-        if obj not in pkg.services:
+        if obj not in pkg.controllers:
             pkg.controllers.append(obj)
 
         return obj
@@ -41,7 +41,7 @@ class BaseHttpController(Component, metaclass=HttpControllerMeta):
             path_full = format_path(api_base, self.config["path"], handler.path)
 
             if not hasattr(self, "pkg"):
-                raise BootstrapException(f"Superclass of {self} was never created")
+                raise BootstrapError(f"Superclass of {self} was never created")
 
             self.log.info(
                 f"Adding Route: {path_full} [{handler.method}] => "

@@ -31,7 +31,7 @@ class MemoryStore(metaclass=StoreMeta):
 
 
 class FileStore(metaclass=StoreMeta):
-    _db_path = ".aioli"
+    path = ".aioli"
 
     def __init__(self, name, lifetime_secs=math.inf):
         self._name = name
@@ -42,7 +42,10 @@ class FileStore(metaclass=StoreMeta):
                 db[self._name] = {}
 
     def _get_db(self, *args, **kwargs):
-        return shelve.open(self._db_path, *args, writeback=True, **kwargs)
+        return shelve.open(self.path, *args, writeback=True, **kwargs)
+
+    def get(self, key):
+        return self.__getitem__(key)
 
     def __getitem__(self, key):
         with self._get_db() as db:

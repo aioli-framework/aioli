@@ -6,7 +6,7 @@ from marshmallow import Schema, fields, ValidationError
 from .config import PackageConfigSchema
 from .controller import BaseHttpController
 from .datastores import MemoryStore
-from .exceptions import BootstrapException, PackageConfigError
+from .exceptions import BootstrapError, PackageConfigError
 from .service import BaseService
 from .validation import (
     validate_name,
@@ -65,9 +65,9 @@ class Package:
         config=None,
     ):
         if auto_meta and meta:
-            raise BootstrapException("Package meta and auto_meta are mutually exclude")
+            raise BootstrapError("Package meta and auto_meta are mutually exclude")
         elif not auto_meta and not meta:
-            raise BootstrapException("Package meta or auto_meta must be supplied")
+            raise BootstrapError("Package meta or auto_meta must be supplied")
 
         self._meta = meta
         self._auto_meta = auto_meta
@@ -83,7 +83,7 @@ class Package:
         elif isinstance(config, type) and issubclass(config, PackageConfigSchema):
             self.config_schema = config
         else:
-            raise BootstrapException(
+            raise BootstrapError(
                 f"Invalid config type {config}. Must be subclass of {PackageConfigSchema}, or None"
             )
 
@@ -107,7 +107,7 @@ class Package:
 
     def _register_service(self, cls, **kwargs):
         if not issubclass(cls, BaseService):
-            raise BootstrapException(
+            raise BootstrapError(
                 f"Service {cls} of {self.name} is invalid, must be of {BaseService} type"
             )
 
@@ -120,7 +120,7 @@ class Package:
 
     def _register_controller(self, cls, **kwargs):
         if not issubclass(cls, BaseHttpController):
-            raise BootstrapException(
+            raise BootstrapError(
                 f"Controller {cls} of {self.name} is invalid, must be of {BaseHttpController} type"
             )
 
@@ -132,7 +132,7 @@ class Package:
         if self._services is None:
             self._services = []
         elif not isinstance(self._services, list):
-            raise BootstrapException(f"{self.name} services must be a list or None")
+            raise BootstrapError(f"{self.name} services must be a list or None")
 
         for cls in self._services:
             self._register_service(cls)
@@ -141,7 +141,7 @@ class Package:
         if self._controllers is None:
             self._controllers = []
         elif not isinstance(self._controllers, list):
-            raise BootstrapException(f"{self.name} controllers must be a list or None")
+            raise BootstrapError(f"{self.name} controllers must be a list or None")
 
         for cls in self._controllers:
             self._register_controller(cls)

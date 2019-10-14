@@ -6,7 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from marshmallow.exceptions import ValidationError
 
-from aioli.exceptions import HTTPException, AioliException, BootstrapException
+from aioli.exceptions import HTTPException, AioliException, BootstrapError
 
 from .config import ApplicationConfigSchema
 from .registry import ImportRegistry
@@ -30,7 +30,7 @@ class Application(Starlette):
 
     def __init__(self, packages, **kwargs):
         if not isinstance(packages, list):
-            raise BootstrapException(
+            raise BootstrapError(
                 f"aioli.Application expects an iterable of Packages, got: {type(packages)}"
             )
 
@@ -40,9 +40,9 @@ class Application(Starlette):
         try:
             self.config = ApplicationConfigSchema().load(config.get("aioli-core", {}))
         except ValueError:
-            raise BootstrapException("Application `config` must be a collection")
+            raise BootstrapError("Application `config` must be a collection")
         except ValidationError as e:
-            raise BootstrapException(f"Configuration validation error: {e.messages}")
+            raise BootstrapError(f"Configuration validation error: {e.messages}")
 
         self.registry = ImportRegistry(self, config)
 

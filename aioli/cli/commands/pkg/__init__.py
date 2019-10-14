@@ -1,11 +1,15 @@
 import click
 
+from aioli.cli import utils
+
 from .pypi import cli_pypi
 from .local import cli_local
 
 
-@click.group(name="pkg", short_help="Application Package Management")
-def cli_pkg():
+@click.group(name="units", short_help="Unit Management")
+@click.pass_context
+@utils.requires_app
+def cli_pkg(ctx):
     pass
 
 
