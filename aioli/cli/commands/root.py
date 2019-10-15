@@ -127,10 +127,16 @@ def app_run(ctx, **kwargs):
 @click.option("--confirm", help="Confirm project creation", is_flag=True)
 @click.argument("name")
 def project_new(name, dst_path, confirm):
-    if not confirm:
-        click.confirm(f"This will create a new project in {dst_path}/{name} --- continue?", default=True, abort=True)
+    profile_name = "standard"
 
-    installer = TemplateInstaller(name, template_name="basic", parent_dir=dst_path)
+    if not confirm:
+        click.confirm(
+            f"New project :: path: {dst_path}/{name}, profile: {profile_name} -- proceed?",
+            default=True,
+            abort=True
+        )
+
+    installer = TemplateInstaller(name, profile_name, parent_dir=dst_path)
 
     header = utils.get_underlined(f"summary") + "\n"
     body = installer.write_base()

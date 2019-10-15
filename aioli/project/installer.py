@@ -1,37 +1,19 @@
-import importlib
-
 from os import mkdir
 from pathlib import Path
 from distutils import dir_util
 
+from .profile import get_profile
 from . import writers
 
 
-class Template:
-    def __init__(self, app_unit, template_mod, template_cls):
-        self.mod = importlib.import_module(template_mod)
-        self.params = getattr(self.mod, template_cls)()
-        self.app_unit = importlib.import_module(app_unit)
-        self.abspath = self.app_unit.__path__[0]
-
-
-TEMPLATES = dict(
-    basic=Template(
-        "aioli.project.profiles.apps.basic",
-        "aioli.project.profiles.configs.basic",
-        "BasicProfileConfig"
-    )
-)
-
-
 class TemplateInstaller:
-    def __init__(self, name, template_name="basic", parent_dir=".", metadata=True, appconfig=True, app_dir=None):
+    def __init__(self, name, profile_name="standard", parent_dir=".", metadata=True, appconfig=True, app_dir=None):
         self.parent_dir = parent_dir
         self.name = name
         self.abspath = str(Path(f"{parent_dir}/{name}").absolute())
         self.enable_metadata = metadata
         self.enable_appconfig = appconfig
-        self.template = TEMPLATES[template_name]
+        self.template = get_profile(profile_name)
         self.app_dir = app_dir or self.template.params.app_dir
 
     def write_base(self):
