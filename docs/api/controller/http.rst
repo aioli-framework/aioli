@@ -23,10 +23,10 @@ Creating an HTTP Interface–be it RESTful or otherwise–is done using the
 
     class HttpController(BaseHttpController):
         def __init__(self):
-            super(HttpController, self).__init__(pkg)
+            super(HttpController, self).__init__(unit)
 
             self.log.debug("Guestbook opening")
-            self.visit = VisitService(pkg)
+            self.visit = VisitService(unit)
 
         async def on_startup(self):
             self.log.debug(f"Guestbook opened")

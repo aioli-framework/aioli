@@ -1,14 +1,14 @@
-from aioli import Package
+from aioli import Unit
 
 from .controller import HttpController
 from .service import ExampleService
 
-export = Package(
+export = Unit(
     controllers=[HttpController],
     services=[ExampleService],
     meta={
         "name": "whoami",
         "version": "0.0.0",
-        "description": "Example whoami package"
+        "description": "Unit example: whoami"
     }
 )

@@ -3,14 +3,14 @@ from .exceptions import BootstrapError
 
 
 class ServiceMeta(ComponentMeta):
-    def __call__(cls, pkg, *args, reuse_existing=True, **kwargs):
+    def __call__(cls, unit, *args, reuse_existing=True, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(ComponentMeta, cls).__call__(pkg, *args, **kwargs)
+            cls._instances[cls] = super(ComponentMeta, cls).__call__(unit, *args, **kwargs)
 
         obj = cls._instances[cls]
 
-        if obj not in pkg.services:
-            pkg.services.append(obj)
+        if obj not in unit.services:
+            unit.services.append(obj)
 
         return obj
 
@@ -18,13 +18,13 @@ class ServiceMeta(ComponentMeta):
 class BaseService(Component, metaclass=ServiceMeta):
     """Base Service class
 
-    :param pkg: Attach to this package
+    :param unit: Attach to this unit
 
     :var app: Application instance
     :var registry: Application ImportRegistry
-    :var pkg: Parent Package
-    :var config: Package configuration
-    :var log: Package logger
+    :var unit: Parent Unit
+    :var config: Unit configuration
+    :var log: Unit logger
     """
 
     _instances = {}
@@ -32,7 +32,7 @@ class BaseService(Component, metaclass=ServiceMeta):
 
     def connect(self, cls):
         """Reuses existing instance of the given Service class, in the context of
-        the Package it was first registered with.
+        the Unit it was first registered with.
 
 
         :param cls: Service class
@@ -40,18 +40,18 @@ class BaseService(Component, metaclass=ServiceMeta):
         """
 
         if cls not in self._instances.keys():
-            pkg_name = cls.__module__.split('.')[0]
+            unit_name = cls.__module__.split('.')[0]
             raise BootstrapError(
-                f"Package {pkg_name}, used by Service {cls.__name__}, must be registered with the Application"
+                f"Unit {unit_name}, used by Service {cls.__name__}, must be registered with the Application"
             )
 
         return self._instances[cls]
 
     def integrate(self, cls):
-        """Creates a new instance of the given Service class in the context of the current Package.
+        """Creates a new instance of the given Service class in the context of the current Unit.
 
         :param cls: Service class
         :return: Integrated Service
         """
 
-        return self.pkg.integrate_service(cls)
+        return self.unit.integrate_service(cls)

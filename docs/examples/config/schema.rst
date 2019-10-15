@@ -1,25 +1,25 @@
 .. _package-config-schema-example:
 
 
-Package config schema
+Unit config schema
 =====================
 
-This example uses code from the `aioli_rdbms <https://github.com/aioli-framework/aioli-rdbms>`_ extension Package.
+This example uses code from the `aioli_rdbms <https://github.com/aioli-framework/aioli-rdbms>`_ extension Unit.
 
 
 Create
 ^^^^^^
 
-Define a custom Package configuration schema.
+Define a custom Unit configuration schema.
 
 *File: aioli_rdbms/config.py*
 
 .. code-block:: python
 
-   from aioli.config import PackageConfigSchema, fields, validate
+   from aioli.config import UnitConfigSchema, fields, validate
 
 
-   class ConfigSchema(PackageConfigSchema):
+   class ConfigSchema(UnitConfigSchema):
        type = fields.String(
            validate=validate.OneOf(["mysql", "postgres"]),
            required=True
@@ -34,19 +34,19 @@ Define a custom Package configuration schema.
 Associate
 ^^^^^^^^^
 
-Associate the configuration schema with a Package.
+Associate the configuration schema with a Unit.
 
 *File: aioli_rdbms/__init__.py*
 
 .. code-block:: python
 
-    from aioli import Package
+    from aioli import Unit
 
     from .service import DatabaseService
     from .config import ConfigSchema
 
 
-    export = Package(
+    export = Unit(
         auto_meta=True,
         controllers=[],
         services=[DatabaseService],

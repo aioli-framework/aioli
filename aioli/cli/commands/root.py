@@ -52,7 +52,7 @@ class ProjectContext:
         except ImportFromStringError as err:
             raise CommandError(f"Invalid path provided ({err})")
 
-        app.load_packages()
+        app.load_units()
 
 
 @click.group(invoke_without_command=False)

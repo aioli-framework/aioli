@@ -1,17 +1,17 @@
 import pytest
 
-from aioli import Package, Application
+from aioli import Unit, Application
 
 
 @pytest.fixture
-def get_pkg():
+def get_unit():
     def _loaded(*args, **kwargs):
-        export = Package(
+        export = Unit(
             *args,
             meta=dict(
                 version=kwargs.pop("version", "0.1.0"),
-                name=kwargs.pop("name", "pkg-name"),
-                description=kwargs.pop("description", "pkg_description")
+                name=kwargs.pop("name", "unit-name"),
+                description=kwargs.pop("description", "unit_description")
             ),
             **kwargs,
         )
@@ -23,9 +23,9 @@ def get_pkg():
 
 @pytest.fixture
 def get_app():
-    def _loaded(packages, **kwargs):
+    def _loaded(units, **kwargs):
         app = Application(
-            packages=packages,
+            units=units,
             **kwargs
         )
 
@@ -35,19 +35,16 @@ def get_app():
 
 
 @pytest.fixture
-def pkg(get_app, get_pkg, logger):
-    def conf_path(value):
-        return dict(config={"path": value})
-
+def unit(get_app, get_unit, logger):
     def _loaded(*args, conf_path=None, **kwargs):
-        export = get_pkg(*args, **kwargs)
+        export = get_unit(*args, **kwargs)
         config = {}
 
         if conf_path:
             config = {export._meta["name"]: dict(path=conf_path)}
 
         app = get_app([export], config=config)
-        app.load_packages()
+        app.load_units()
 
         return app.registry.imported[-1]
 

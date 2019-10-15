@@ -9,16 +9,16 @@ from poetry.utils.env import Env
 
 from aioli.exceptions import CommandError
 
-from .schemas import PackageSchema
+from .schemas import UnitSchema
 
 
-# Package author, when looking for official packages
+# Package author, when looking for official package
 PKG_AUTHOR = "aioli"
 
 # Package keyword, used for Aioli packages
 PKG_KEYWORD = "aioli_package"
 
-RepositoryCollection = namedtuple("Repository", ["installed", "remote"])
+RepositoryCollection = namedtuple("Repository", ["local", "remote"])
 
 
 class Repository:
@@ -30,7 +30,7 @@ class Repository:
     """
 
     url = "https://pypi.python.org/pypi"
-    packages_all = {}
+    units_all = {}
     log = logging.getLogger("pypi")
 
     def __init__(self, directory, state, config, attached):
@@ -39,12 +39,12 @@ class Repository:
         self.config = config
         proj_env = Env(directory)
         self.repository = RepositoryCollection(
-            installed=InstalledRepository().load(proj_env),
+            local=InstalledRepository().load(proj_env),
             remote=PyPiRepository()
         )
 
     def get_installed(self, name):
-        return self.repository.installed.find_packages(name)
+        return self.repository.local.find_packages(name)
 
     def _pull(self, **query):
         index = ServerProxy(self.url)
@@ -54,13 +54,13 @@ class Repository:
             p["official"] = official
             p["installed"] = len(self.get_installed(p["name"])) > 0
             p["attached"] = p["name"] in [a.name for a in self.attached]
-            info = PackageSchema(unknown="EXCLUDE").load(p)
+            info = UnitSchema(unknown="EXCLUDE").load(p)
             yield info["name"], info
 
     def get_many(self, force_refresh=False, **query):
-        pkgs = self.state["pypi_all"]
+        units = self.state["pypi_all"]
 
-        if not force_refresh and pkgs:
+        if not force_refresh and units:
             return self.state["pypi_all"]
 
         stdout.write("\nPulling fresh data from PyPI...")
@@ -79,19 +79,19 @@ class Repository:
         return new_state
 
     def get_one(self, name):
-        pkgs = self.get_many()
-        pkg = pkgs.get(name)
+        units = self.get_many()
+        unit = units.get(name)
 
-        if not pkg:
-            raise CommandError("No package by that name was found")
-        elif "releases" in pkg:
-            return pkg
+        if not unit:
+            raise CommandError("No Unit by that name was found")
+        elif "releases" in unit:
+            return unit
 
-        pkg_data = self.repository.remote.get_package_info(name)
-        info = pkg_data["info"]
-        releases = pkg_data["releases"]
+        unit_data = self.repository.remote.get_package_info(name)
+        info = unit_data["info"]
+        releases = unit_data["releases"]
 
-        pkg_full = PackageSchema(unknown="EXCLUDE").load(
+        unit_full = UnitSchema(unknown="EXCLUDE").load(
             dict(
                 **info,
                 links=dict(
@@ -99,7 +99,7 @@ class Repository:
                     pypi=info.pop("project_url").rstrip("/")
                 ),
                 releases=[dict(
-                    installed=pkg["installed"] and pkg["version"] == version,
+                    installed=unit["installed"] and unit["version"] == version,
                     version=version,
                     checksum=dist[0].get("md5_digest"),
                     upload_time=dist[0].get("upload_time"),
@@ -107,6 +107,6 @@ class Repository:
             )
         )
 
-        self.state["pypi_all"][name] = pkg_full
+        self.state["pypi_all"][name] = unit_full
 
-        return pkg_full
+        return unit_full

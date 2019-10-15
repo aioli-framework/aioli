@@ -13,7 +13,7 @@ from .registry import Handler
 def route(path, method, description=None):
     """Prepares route registration, and performs handler injection.
 
-    :param path: Handler path, relative to application and package paths
+    :param path: Handler path, relative to application and unit paths
     :param method: HTTP Method
     :param description: Endpoint description
     :return: Route handler
@@ -109,16 +109,16 @@ def returns(schema_cls=None, status=200, many=False):
 
     def wrapper(fn):
         @wraps(fn)
-        async def handler_fn(pkg, *args, **kwargs):
+        async def handler_fn(unit, *args, **kwargs):
             args_new = list(args)
 
             # Remove `Request` object from args (in case it wasn't consumed by an `input_local`).
             if len(args) > 1 and isinstance(args[1], Request):
                 args_new.pop(1)
 
-            rv = await fn(pkg, *args_new, **kwargs)
+            rv = await fn(unit, *args_new, **kwargs)
 
-            indent = 4 if pkg.app.config["pretty_json"] else 0
+            indent = 4 if unit.app.config["pretty_json"] else 0
 
             if not schema:
                 return jsonify(rv, status, indent=indent)

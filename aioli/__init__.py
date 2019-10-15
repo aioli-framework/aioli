@@ -1,3 +1,3 @@
 from .exceptions import AioliException
-from .package import Package
+from .unit import Unit
 from .app import Application

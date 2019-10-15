@@ -7,7 +7,7 @@ from .units import whoami as example_unit
 
 export = aioli.Application(
     config=toml.load("app.toml"),
-    packages=[
+    units=[
         example_unit,
         aioli_openapi,
     ]

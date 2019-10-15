@@ -14,7 +14,7 @@ class UvicornServer(Server):
     def run(self, *args, **kwargs):
         app = import_from_string(self.app_path)
         setup_logging(level=self.config.log_level.upper())
-        app.load_packages()
+        app.load_units()
 
         super().run(*args, **kwargs)
 

@@ -1,9 +1,9 @@
 import toml
 
-from aioli.config import ApplicationConfigSchema, PackageConfigSchema
+from aioli.config import ApplicationConfigSchema, UnitConfigSchema
 
 
-class ConfigSchema(PackageConfigSchema):
+class ConfigSchema(UnitConfigSchema):
     class Meta:
         unknown = "INCLUDE"
 

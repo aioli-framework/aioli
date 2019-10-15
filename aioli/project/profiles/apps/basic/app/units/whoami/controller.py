@@ -5,9 +5,9 @@ from .schema import ExampleSchema
 
 
 class HttpController(BaseHttpController):
-    def __init__(self, pkg):
-        super(HttpController, self).__init__(pkg)
-        self.svc = ExampleService(pkg)
+    def __init__(self, unit):
+        super(HttpController, self).__init__(unit)
+        self.svc = ExampleService(unit)
 
     @route("/", Method.GET)
     @returns(ExampleSchema)

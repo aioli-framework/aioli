@@ -35,23 +35,23 @@ def format_controller(ctrl):
     return controller
 
 
-def get_one(ctx, pkg_name):
-    pkg = ctx.obj.app_obj.registry.get_import(pkg_name)
-    meta = pkg.meta
-    name_underline = "=" * len(pkg_name)
+def get_one(ctx, unit_name):
+    unit = ctx.obj.app_obj.registry.get_import(unit_name)
+    meta = unit.meta
+    name_underline = "=" * len(unit_name)
 
     props = yaml.dump(dict(
         description=meta["description"],
         version=meta["version"],
-        path=pkg.config["path"],
-        controllers={ctrl.__class__.__name__: format_controller(ctrl) for ctrl in pkg.controllers},
-        services=[svc.__class__.__name__ for svc in pkg.services]
+        path=unit.config["path"],
+        controllers={ctrl.__class__.__name__: format_controller(ctrl) for ctrl in unit.controllers},
+        services=[svc.__class__.__name__ for svc in unit.services]
     ), sort_keys=False)
 
     return (
         "\n".join(
             [
-                f"\n{pkg_name}\n{name_underline}",
+                f"\n{unit_name}\n{name_underline}",
                 props,
             ]
         )
@@ -64,19 +64,19 @@ def get_many(ctx):
     return make_table(items).draw()
 
 
-@click.group(name="attached", short_help="Manage attached packages")
+@click.group(name="local", short_help="Manage attached units")
 def cli_local():
     pass
 
 
-@cli_local.command("show", short_help="Package details")
-@click.argument("pkg_name")
+@cli_local.command("show", short_help="Unit details")
+@click.argument("unit_name")
 @click.pass_context
-def local_one(ctx, pkg_name):
-    click.echo(get_one(ctx, pkg_name))
+def local_one(ctx, unit_name):
+    click.echo(get_one(ctx, unit_name))
 
 
-@cli_local.command("list", short_help="List Packages")
+@cli_local.command("list", short_help="List Units")
 @click.pass_context
 def local_list(ctx):
     click.echo(get_many(ctx))

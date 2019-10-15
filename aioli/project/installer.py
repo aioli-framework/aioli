@@ -8,11 +8,11 @@ from . import writers
 
 
 class Template:
-    def __init__(self, app_pkg, template_mod, template_cls):
+    def __init__(self, app_unit, template_mod, template_cls):
         self.mod = importlib.import_module(template_mod)
         self.params = getattr(self.mod, template_cls)()
-        self.app_pkg = importlib.import_module(app_pkg)
-        self.abspath = self.app_pkg.__path__[0]
+        self.app_unit = importlib.import_module(app_unit)
+        self.abspath = self.app_unit.__path__[0]
 
 
 TEMPLATES = dict(
@@ -69,7 +69,7 @@ class TemplateInstaller:
                     api_base=self.template.params.http_api
                 ),
                 extra=[
-                    ("pkg-example", {"path": "/whoami"})
+                    ("unit-example", {"path": "/whoami"})
                 ]
             )
 

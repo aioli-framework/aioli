@@ -3,10 +3,10 @@ import re
 from marshmallow.exceptions import ValidationError
 
 
-# Reserved Package names
+# Reserved Unit names
 NAMES_RESERVED = ["aioli", "aioli-core"]
 
-# Allowed Package name format
+# Allowed Unit name format
 NAME_REGEX = re.compile(r"^[a-z0-9]+(?:[-][a-z0-9]+)*$")
 
 # Semantic version regex
@@ -20,7 +20,7 @@ VERSION_REGEX = re.compile(
 )
 
 
-# Allowed Package path format
+# Allowed Unit path format
 PATH_REGEX = re.compile(r"^/[a-zA-Z0-9-]*$")
 
 

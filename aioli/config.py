@@ -34,17 +34,17 @@ class BaseConfigSchema(schema.Schema, metaclass=ConfigMeta):
         return params
 
 
-class PackageConfigSchema(BaseConfigSchema):
-    """Package configuration schema
+class UnitConfigSchema(BaseConfigSchema):
+    """Unit configuration schema
 
-    :var debug: Set debug level for package, effectively overriding Application's debug level
-    :var path: Package path, uses Package name if empty
-    :var should_import_services: Setting to False skips Service registration for this Package
-    :var should_import_controllers: Setting to False skips Controller registration for this Package
+    :var debug: Set debug level for unit, effectively overriding Application's debug level
+    :var path: Unit path, uses Unit name if empty
+    :var should_import_services: Setting to False skips Service registration for this Unit
+    :var should_import_controllers: Setting to False skips Controller registration for this Unit
     """
 
     def __init__(self, *args, **kwargs):
-        super(PackageConfigSchema, self).__init__(*args, **kwargs)
+        super(UnitConfigSchema, self).__init__(*args, **kwargs)
 
     debug = fields.Bool(missing=None)
     path = fields.String(required=False, missing=None)

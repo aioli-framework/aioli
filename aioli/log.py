@@ -12,17 +12,17 @@ LOGGING_CONFIG_DEFAULTS = dict(
     loggers={
         "root": {
             "level": "WARN",
-            "handlers": ["pkg_console"],
+            "handlers": ["unit_console"],
             "propagate": False
         },
         "aioli": {
             "level": "WARN",
-            "handlers": ["pkg_console"],
+            "handlers": ["unit_console"],
             "propagate": False
         },
         "uvicorn": {
             "level": "WARN",
-            "handlers": ["pkg_console"],
+            "handlers": ["unit_console"],
             "propagate": False
         },
     },
@@ -42,14 +42,14 @@ LOGGING_CONFIG_DEFAULTS = dict(
             "formatter": "access",
             "stream": sys.stdout,
         },
-        "pkg_console": {
+        "unit_console": {
             "class": "logging.StreamHandler",
-            "formatter": "pkg",
+            "formatter": "unit",
             "stream": sys.stdout,
         },
     },
     formatters={
-        "pkg": {
+        "unit": {
             "format": "[%(levelname)1.1s %(asctime)s.%(msecs)03d %(name)s] %(message)s",
             "datefmt": "%Y-%m-%d %H:%M:%S",
             "class": "logging.Formatter",

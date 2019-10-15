@@ -2,7 +2,7 @@ Application
 ===========
 
 To run the Aioli application, an :class:`~aioli.Application` instance must be created.
-Its constructor expects a *list* of at least one :class:`~aioli.Package` to be registered with the application.
+Its constructor expects a *list* of at least one :class:`~aioli.Unit` to be registered with the application.
 
 
 .. automodule:: aioli
@@ -25,7 +25,7 @@ Its constructor expects a *list* of at least one :class:`~aioli.Package` to be r
 
     app = Application(
         config=toml.load("aioli.cfg"),
-        packages=[
+        units=[
             aioli_guestbook,
             aioli_rdbms,
         ]

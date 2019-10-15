@@ -20,12 +20,12 @@ Documentation
 The documentation is available at [https://docs.aioli.dev](https://docs.aioli.dev). 
 
 
-Packages
+Units
 ---
 
-Shortly, the https://pkgs.aioli.dev website will show useful info about first and verified third-party Packages; trust status, install instructions, author and license data, as well as links to source code and more.
+Shortly, the https://pkgs.aioli.dev website will show useful info about first and verified third-party Units; trust status, install instructions, author and license data, as well as links to source code and more.
 
-Currently, first-party extension-type Packages can be found at [github.com/aioli-framework](https://github.com/aioli-framework).
+Currently, first-party extension-type Units can be found at [github.com/aioli-framework](https://github.com/aioli-framework).
 
 
 Project status

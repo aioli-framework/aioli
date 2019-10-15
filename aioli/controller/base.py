@@ -8,14 +8,14 @@ from .registry import handlers
 
 
 class HttpControllerMeta(ComponentMeta):
-    def __call__(cls, pkg, *args, **kwargs):
+    def __call__(cls, unit, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(ComponentMeta, cls).__call__(pkg, *args, **kwargs)
+            cls._instances[cls] = super(ComponentMeta, cls).__call__(unit, *args, **kwargs)
 
         obj = cls._instances[cls]
 
-        if obj not in pkg.controllers:
-            pkg.controllers.append(obj)
+        if obj not in unit.controllers:
+            unit.controllers.append(obj)
 
         return obj
 
@@ -23,10 +23,10 @@ class HttpControllerMeta(ComponentMeta):
 class BaseHttpController(Component, metaclass=HttpControllerMeta):
     """HTTP API Controller
 
-    :param pkg: Attach to this package
+    :param unit: Attach to this unit
 
-    :var pkg: Parent Package
-    :var config: Package configuration
+    :var unit: Parent Unit
+    :var config: Unit configuration
     :var log: Controller logger
     """
 
@@ -40,7 +40,7 @@ class BaseHttpController(Component, metaclass=HttpControllerMeta):
 
             path_full = format_path(api_base, self.config["path"], handler.path)
 
-            if not hasattr(self, "pkg"):
+            if not hasattr(self, "unit"):
                 raise BootstrapError(f"Superclass of {self} was never created")
 
             self.log.info(
@@ -50,7 +50,7 @@ class BaseHttpController(Component, metaclass=HttpControllerMeta):
 
             methods = [handler.method]
 
-            self.pkg.app.add_route(path_full, func, methods, handler_name)
+            self.unit.app.add_route(path_full, func, methods, handler_name)
             handler.path_full = path_full
 
     @property

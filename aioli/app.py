@@ -18,7 +18,7 @@ class Application(Starlette):
     """Creates an Aioli application
 
     :param config: Configuration dictionary
-    :param packages: List of packages
+    :param units: List of units
 
     :var log: Aioli Application logger
     :var registry: ImportRegistry instance
@@ -28,14 +28,14 @@ class Application(Starlette):
     log = logging.getLogger("aioli.core")
     state = MemoryStore("app")
 
-    def __init__(self, packages, **kwargs):
-        if not isinstance(packages, list):
+    def __init__(self, units, **kwargs):
+        if not isinstance(units, list):
             raise BootstrapError(
-                f"aioli.Application expects an iterable of Packages, got: {type(packages)}"
+                f"aioli.Application expects an iterable of Units, got: {type(units)}"
             )
 
         config = kwargs.pop("config", {})
-        self.__packages = packages
+        self.__units = units
 
         try:
             self.config = ApplicationConfigSchema().load(config.get("aioli-core", {}))
@@ -62,13 +62,13 @@ class Application(Starlette):
         self.router.lifespan.add_event_handler("startup", self._startup)
         self.router.lifespan.add_event_handler("shutdown", self._shutdown)
 
-    def load_packages(self):
+    def load_units(self):
         self.log.info("Commencing countdown, engines on")
-        self.registry.register_packages(self.__packages)
+        self.registry.register_units(self.__units)
 
     async def _startup(self):
-        if not self.__packages:
-            self.log.warning(f"No Packages loaded")
+        if not self.__units:
+            self.log.warning(f"No Units loaded")
             return
 
         total, failed = await self.registry.call_startup_handlers()
@@ -76,8 +76,8 @@ class Application(Starlette):
         if failed > 0:
             self.log.warning(f"Application degraded")
         else:
-            self.log.info(f"Application ready: {total} Packages loaded")
+            self.log.info(f"Application ready: {total} Units loaded")
 
     async def _shutdown(self):
-        for pkg in self.registry.imported:
-            await pkg.detach_services()
+        for unit in self.registry.imported:
+            await unit.detach_services()

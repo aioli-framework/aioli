@@ -3,7 +3,7 @@
 Configure
 =========
 
-The *Application* and associated *Packages* can be configured using either environment variables,
+The *Application* and associated *Units* can be configured using either environment variables,
 or by a dictionary provided to the *config* parameter when creating the :class:`~aioli.Application`.
 
 
@@ -50,17 +50,17 @@ Mappings used for configuring core parts of an Aioli Application.
    ===================   =========================  ===========
 
 
-Package
+Unit
 ~~~~~~~
 
-A custom *Package* configuration schema can be defined using the :class:`~aioli.config.PackageConfigSchema` class,
+A custom *Unit* configuration schema can be defined using the :class:`~aioli.config.UnitConfigSchema` class,
 which comes with a set of common parameters listed below.
 
 *Locations*
 
-- Dictionary key: [package_name]
+- Dictionary key: [unit_name]
 - Environment prefix: [PACKAGE_NAME]
-- Run-time access: :py:attr:`aioli.Package.config`
+- Run-time access: :py:attr:`aioli.Unit.config`
 
 *Mappings*
 
@@ -76,7 +76,7 @@ which comes with a set of common parameters listed below.
    ===================   ===================================  ===========
 
 
-Check out the :ref:`Package Config Schema docs <package-config-docs>` for info on how to extend the base schema
+Check out the :ref:`Unit Config Schema docs <unit-config-docs>` for info on how to extend the base schema
 with custom parameters.
 
 
@@ -108,12 +108,12 @@ Constructor
 
 The configuration can be provided as a dictionary to the *config* parameter when creating the :class:`~aioli.Application`.
 
-Check out an :ref:`Application configuration example <package-config-schema-example>`.
+Check out an :ref:`Application configuration example <unit-config-schema-example>`.
 
 Access
 ^^^^^^
 
-Both :class:`~aioli.Application` and :class:`~aioli.Package` configurations can be easily accessed from both :ref:`service-docs` and :ref:`controller-docs` instances,
+Both :class:`~aioli.Application` and :class:`~aioli.Unit` configurations can be easily accessed from both :ref:`service-docs` and :ref:`controller-docs` instances,
 using the `config` property.
 
 
