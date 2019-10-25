@@ -1,6 +1,8 @@
 import os
 import sys
 
+from aioli.exceptions import CommandError
+
 from .commands import cli_root
 from . import config, utils
 
@@ -13,3 +15,4 @@ def run():
     sys.path.append(os.getcwd())
 
     return cli_root(prog_name="aioli")
+

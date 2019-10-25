@@ -71,6 +71,10 @@ def cli_root(ctx, app_path=None):
 @click.pass_context
 def attach_app(ctx):
     ctx.obj.sync_state()
+
+    if not ctx.obj.app_path:
+        raise CommandError("Path to an app must be supplied, example: aioli --app_path app:export attach")
+
     click.echo(f"Attached {ctx.obj.app_path}")
 
 
@@ -96,7 +100,12 @@ def open_shell(ctx):
         # completer=ContextualCompleter()
     )
 
-    repl(ctx, prompt_kwargs=settings)
+    while True:
+        try:
+            if not repl(ctx, prompt_kwargs=settings):
+                break
+        except Exception as e:
+            utils.echo(f"err> {str(e)}")
 
 
 @cli_root.command("start", short_help="Start development server")
