@@ -56,7 +56,7 @@ class ProjectContext:
 
 
 @click.group(invoke_without_command=False)
-@click.option("--app_path", help="App to operate on")
+@click.option("--app_path", help="App to operate on, example: app:export")
 @click.pass_context
 def cli_root(ctx, app_path=None):
     """~ Aioli Command Line Interface ~"""
@@ -124,32 +124,39 @@ def app_run(ctx, **kwargs):
     default=".",
     help="Directory in which to create the project defaults to current working directory"
 )
+@click.option(
+    "--profile",
+    help="Profile name",
+    type=click.Choice(["standard"], case_sensitive=True),
+    default="standard"
+)
 @click.option("--confirm", help="Confirm project creation", is_flag=True)
 @click.argument("name")
-def project_new(name, dst_path, confirm):
-    profile_name = "standard"
+def project_new(name, dst_path, confirm, profile):
+    installer = TemplateInstaller(name, profile, parent_dir=dst_path)
+    plan = installer.get_plan()
 
     if not confirm:
+        summary = "{title}\n{body}\nContinue?".format(
+            title=utils.get_decorated("New project"),
+            body=yaml.dump(plan, sort_keys=False)
+        )
         click.confirm(
-            f"New project :: path: {dst_path}/{name}, profile: {profile_name} -- proceed?",
+            summary,
             default=True,
             abort=True
         )
 
-    installer = TemplateInstaller(name, profile_name, parent_dir=dst_path)
-
-    header = utils.get_underlined(f"summary") + "\n"
-    body = installer.write_base()
-
-    click.echo(header + yaml.dump(body, sort_keys=False))
+    installer.write_base()
+    click.echo("\nSuccess.")
 
 
-@cli_root.command("dump", short_help="Dump current application")
+@cli_root.command("info", short_help="Application info")
 @click.pass_context
 @utils.requires_app
 def project_status(ctx):
     proj = ctx.obj
-    header = utils.get_underlined("project state")
+    header = utils.get_decorated("project state")
 
     body = yaml.dump({
         "path": proj.root_dir,

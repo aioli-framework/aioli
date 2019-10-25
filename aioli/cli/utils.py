@@ -1,8 +1,25 @@
+import click
+
 from aioli.exceptions import CommandError
 
 
-def get_underlined(text, symbol="="):
-    return f"\n{text}\n{symbol * len(text)}"
+def echo(text, pad_top=False, pad_bottom=False):
+    pad_top and click.echo()
+    click.echo(text)
+    pad_bottom and click.echo()
+
+
+def get_section(title, body):
+    return "\n".join(
+        [
+            get_decorated(title),
+            body,
+        ]
+    )
+
+
+def get_decorated(text):
+    return "{0}\n{1}".format(text, "=" * len(text))
 
 
 def requires_app(func):

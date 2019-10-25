@@ -2,33 +2,20 @@ from pathlib import Path
 
 import yaml
 import click
-import texttable
 
-from aioli.cli import config, utils
+from aioli.cli import config, utils, table
 from aioli.datastores import FileStore
 from aioli.exceptions import CommandError
 from aioli.repository import Repository
 
 
-def produce_row(item, columns):
-    for c in columns:
-        if c in ["official", "attached", "installed"]:
-            yield "YES" if item[c] else "NO"
-        else:
-            yield item[c]
-
-
-def make_table(items):
-    table = texttable.Texttable()
-
-    columns = ["name", "description", "official", "installed", "attached"]
-    table.add_row(columns)
-
-    for item in items.values():
-        row = produce_row(item, columns)
-        table.add_row(list(row))
-
-    return table
+class PypiTable(table.BaseTable):
+    def get_row(self, item):
+        for c in self.columns:
+            if c in ["official", "attached", "installed"]:
+                yield "YES" if item[c] else "NO"
+            else:
+                yield item[c]
 
 
 def get_many(ctx, **kwargs):
@@ -38,9 +25,10 @@ def get_many(ctx, **kwargs):
     if not units:
         raise CommandError("No Aioli packages found")
 
-    table = make_table(units)
-
-    return "\n" + table.draw() + "\n"
+    return PypiTable(
+        ["name", "description", "official", "installed", "attached"],
+        units.values()
+    ).draw()
 
 
 def get_one(ctx, unit_name):
@@ -56,7 +44,7 @@ def get_one(ctx, unit_name):
 
     del unit["version"]
 
-    props = yaml.dump(dict(
+    unit_info = yaml.dump(dict(
         description=unit["description"],
         author="{0} <{1}>".format(unit.pop("author"), unit.pop("author_email")),
         license=unit["license"],
@@ -64,14 +52,7 @@ def get_one(ctx, unit_name):
         releases=sorted(releases, reverse=True)[:4],
     ), sort_keys=False)
 
-    return (
-        "\n".join(
-            [
-                f"\n{utils.get_underlined(name)}",
-                props,
-            ]
-        )
-    )
+    return utils.get_section(title=unit_name, body=unit_info)
 
 
 @click.group(name="pypi", short_help="Units available on PyPI")
@@ -89,16 +70,10 @@ def cli_pypi(ctx):
 @click.argument("unit_name")
 @click.pass_context
 def pypi_one(ctx, unit_name):
-    click.echo(get_one(ctx, unit_name))
+    utils.echo(get_one(ctx, unit_name))
 
 
 @cli_pypi.command("list", short_help="List Units")
 @click.pass_context
 def pypi_list(ctx):
-    click.echo(get_many(ctx))
-
-
-@cli_pypi.command("download", short_help="Download unit package")
-@click.pass_context
-def pypi_download(ctx):
-    click.echo("Work in progress")
+    utils.echo(get_many(ctx), pad_bottom=True)

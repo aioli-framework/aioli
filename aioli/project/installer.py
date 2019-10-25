@@ -13,24 +13,38 @@ class TemplateInstaller:
         self.abspath = str(Path(f"{parent_dir}/{name}").absolute())
         self.enable_metadata = metadata
         self.enable_appconfig = appconfig
+        self.profile_name = profile_name
         self.template = get_profile(profile_name)
         self.app_dir = app_dir or self.template.params.app_dir
+
+    def get_plan(self):
+        tmpl = self.template
+        params = self.template.params
+
+        return dict(
+            name=self.name,
+            profile=self.profile_name,
+            path=self.abspath,
+            export=f"{tmpl.params.app_dir}:{tmpl.params.export_obj}",
+            files=list(self.copy_app_dir(dry_run=True)) + [params.metadata] + [params.appconfig],
+            interfaces={
+                "http": tmpl.params.http_api,
+            }
+        )
+
+    def copy_app_dir(self, **kwargs):
+        for abspath in dir_util.copy_tree(f"{self.template.abspath}/app", f"{self.abspath}/{self.app_dir}", **kwargs):
+            relpath = str(Path(abspath).relative_to(self.abspath))
+            yield relpath
 
     def write_base(self):
         if Path(self.abspath).exists():
             raise ValueError(f"Error: Target directory {self.abspath} already exists")
 
-        tmpl = self.template
-
         # Create root path
         mkdir(self.abspath)
 
-        objects = []
-
-        # Create app path
-        for abspath in dir_util.copy_tree(f"{tmpl.abspath}/app", f"{self.abspath}/{self.app_dir}"):
-            relpath = str(Path(abspath).relative_to(self.abspath))
-            objects.append(relpath)
+        objects = list(self.copy_app_dir())
 
         if self.enable_metadata:
             writers.poetry_config(
@@ -56,12 +70,3 @@ class TemplateInstaller:
             )
 
             objects.append(self.template.params.appconfig)
-
-        return dict(
-            path=self.abspath,
-            export=f"{tmpl.params.app_dir}:{tmpl.params.export_obj}",
-            files=objects,
-            interfaces={
-                "http": tmpl.params.http_api,
-            }
-        )
