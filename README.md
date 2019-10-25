@@ -1,4 +1,4 @@
-Aioli: Non-blocking Web API Framework
+Aioli: Web application framework
 === 
 
 [![image](https://img.shields.io/github/license/aioli-framework/aioli.svg?style=flat-square)](https://raw.githubusercontent.com/aioli-framework/aioli/master/LICENSE)
