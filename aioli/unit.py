@@ -1,5 +1,6 @@
 import logging
 import importlib
+import inspect
 
 from marshmallow import Schema, fields, ValidationError
 
@@ -67,7 +68,17 @@ class Unit:
         if auto_meta and meta:
             raise BootstrapError("Unit meta and auto_meta are mutually exclude")
         elif not auto_meta and not meta:
-            raise BootstrapError("Unit meta or auto_meta must be supplied")
+            # No hints provided: name Unit after package name
+            frame = inspect.stack()[1]
+            mod = inspect.getmodule(frame[0])
+            parts = mod.__name__.split(".")
+            name = parts[-1]
+
+            meta = dict(
+                name=name,
+                version="0.0.0",
+                description=f"Aioli unit: {name}"
+            )
 
         self._meta = meta
         self._auto_meta = auto_meta

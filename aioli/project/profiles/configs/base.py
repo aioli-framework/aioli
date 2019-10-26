@@ -11,11 +11,6 @@ class ProfileConfig(ABC):
 
     @property
     @abstractmethod
-    def app_dir(self):
-        pass
-
-    @property
-    @abstractmethod
     def export_obj(self):
         pass
 
@@ -33,3 +28,14 @@ class ProfileConfig(ABC):
     @abstractmethod
     def appconfig(self):
         pass
+
+    @property
+    @abstractmethod
+    def extra(self):
+        pass
+
+    @property
+    @abstractmethod
+    def dependencies(self):
+        pass
+

@@ -9,7 +9,7 @@ class ConfigSchema(UnitConfigSchema):
 
 
 def appconfig(output_path, core=None, extra=None):
-    extra = dict(extra) or {}
+    extra = extra and dict(extra) or {}
 
     data = {
         "aioli-core": ApplicationConfigSchema().load(core or {}),

@@ -1,22 +1,29 @@
 import importlib
+from .profiles import configs
 
 
 class TemplateProfile:
-    def __init__(self, app_unit, template_mod, template_cls):
-        self.mod = importlib.import_module(template_mod)
-        self.params = getattr(self.mod, template_cls)()
+    def __init__(self, app_unit, config_cls):
+        self.params = getattr(configs, config_cls)()
         self.app_unit = importlib.import_module(app_unit)
         self.abspath = self.app_unit.__path__[0]
 
 
-PROFILES = dict(
-    standard=TemplateProfile(
-        "aioli.project.profiles.apps.standard",
-        "aioli.project.profiles.configs.standard",
-        "StandardProfileConfig"
+TEMPLATE_PROFILES = dict(
+    minimal=TemplateProfile(
+        "aioli.project.profiles.apps.minimal",
+        "StandardConfig"
+    ),
+    guesthouse=TemplateProfile(
+        "aioli.project.profiles.apps.guesthouse",
+        "GuesthouseConfig"
+    ),
+    whoami=TemplateProfile(
+        "aioli.project.profiles.apps.whoami",
+        "StandardConfig"
     )
 )
 
 
 def get_profile(name):
-    return PROFILES[name]
+    return TEMPLATE_PROFILES[name]

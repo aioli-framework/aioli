@@ -12,7 +12,7 @@ from aioli.cli import utils, config
 from aioli.servers import uvicorn_server
 from aioli.exceptions import CommandError
 from aioli.datastores import FileStore
-from aioli.project import TemplateInstaller
+from aioli.project import TemplateInstaller, TEMPLATE_PROFILES
 
 
 NON_SHELL_CMDS = ["attach", "create"]
@@ -136,8 +136,8 @@ def app_run(ctx, **kwargs):
 @click.option(
     "--profile",
     help="Profile name",
-    type=click.Choice(["standard"], case_sensitive=True),
-    default="standard"
+    type=click.Choice(TEMPLATE_PROFILES.keys(), case_sensitive=True),
+    default="minimal"
 )
 @click.option("--confirm", help="Confirm project creation", is_flag=True)
 @click.argument("name")

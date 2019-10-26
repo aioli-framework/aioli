@@ -7,7 +7,7 @@ from . import writers
 
 
 class TemplateInstaller:
-    def __init__(self, name, profile_name="standard", parent_dir=".", metadata=True, appconfig=True, app_dir=None):
+    def __init__(self, name, profile_name="standard", parent_dir=".", metadata=True, appconfig=True):
         self.parent_dir = parent_dir
         self.name = name
         self.abspath = str(Path(f"{parent_dir}/{name}").absolute())
@@ -15,7 +15,6 @@ class TemplateInstaller:
         self.enable_appconfig = appconfig
         self.profile_name = profile_name
         self.template = get_profile(profile_name)
-        self.app_dir = app_dir or self.template.params.app_dir
 
     def get_plan(self):
         tmpl = self.template
@@ -25,7 +24,7 @@ class TemplateInstaller:
             name=self.name,
             profile=self.profile_name,
             path=self.abspath,
-            export=f"{tmpl.params.app_dir}:{tmpl.params.export_obj}",
+            export=f"{self.name}:{tmpl.params.export_obj}",
             files=list(self.copy_app_dir(dry_run=True)) + [params.metadata] + [params.appconfig],
             interfaces={
                 "http": tmpl.params.http_api,
@@ -33,7 +32,7 @@ class TemplateInstaller:
         )
 
     def copy_app_dir(self, **kwargs):
-        for abspath in dir_util.copy_tree(f"{self.template.abspath}/app", f"{self.abspath}/{self.app_dir}", **kwargs):
+        for abspath in dir_util.copy_tree(f"{self.template.abspath}/app", f"{self.abspath}/{self.name}", **kwargs):
             relpath = str(Path(abspath).relative_to(self.abspath))
             yield relpath
 
@@ -51,7 +50,7 @@ class TemplateInstaller:
                 f"{self.abspath}/{self.template.params.metadata}",
                 data=dict(
                     core={"name": self.name},
-                    dependencies={"python": "^3.6"},
+                    dependencies=self.template.params.dependencies,
                     build_system={}
                 )
             )
@@ -64,9 +63,7 @@ class TemplateInstaller:
                 core=dict(
                     api_base=self.template.params.http_api
                 ),
-                extra=[
-                    ("unit-example", {"path": "/whoami"})
-                ]
+                extra=self.template.params.extra
             )
 
             objects.append(self.template.params.appconfig)
