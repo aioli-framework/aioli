@@ -2,7 +2,7 @@ from os import mkdir
 from pathlib import Path
 from distutils import dir_util
 
-from .profile import get_profile
+from .profile import TEMPLATE_PROFILES
 from . import writers
 
 
@@ -14,7 +14,7 @@ class TemplateInstaller:
         self.enable_metadata = metadata
         self.enable_appconfig = appconfig
         self.profile_name = profile_name
-        self.template = get_profile(profile_name)
+        self.template = TEMPLATE_PROFILES[profile_name]
 
     def get_plan(self):
         tmpl = self.template

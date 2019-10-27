@@ -8,11 +8,11 @@ class GuesthouseConfig(StandardConfig):
         ),
         "aioli-rdbms": dict(
             type="mysql",
-            username="root",
-            password="testar123",
+            username="<USERNAME>",
+            password="<PASSWORD>",
             host="127.0.0.1",
             port=3306,
-            database="aioli"
+            database="<DATABASE>"
         ),
         "aioli-openapi": dict(
             path="/openapi",

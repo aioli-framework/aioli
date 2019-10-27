@@ -23,7 +23,3 @@ TEMPLATE_PROFILES = dict(
         "StandardConfig"
     )
 )
-
-
-def get_profile(name):
-    return TEMPLATE_PROFILES[name]
