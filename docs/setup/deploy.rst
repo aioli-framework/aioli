@@ -1,40 +1,6 @@
 Deploy
 ======
 
-Development
-^^^^^^^^^^^
+.. note::
 
-Given an Application like:
-
-.. code-block:: python
-
-    # File: main.py
-
-    import aioli_guestbook
-    import aioli_rdbms
-
-    import toml
-
-    from aioli import Application
-
-    app = Application(
-        config=toml.load("aioli.cfg"),
-        packages=[
-            aioli_guestbook,
-            aioli_rdbms,
-        ]
-    )
-
-
-...the Aioli CLI can be used to start the Application (using a built-in Uvicorn server).
-
-.. code-block:: bash
-
-    $ python3 -m aioli dev-server main:app
-
-
-
-Production
-^^^^^^^^^^
-
-Work in progress
+    Containerization deployment guidelines will be added shortly

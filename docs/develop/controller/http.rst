@@ -1,9 +1,8 @@
 HTTP
 ====
 
-Creating an HTTP Interface–be it RESTful or otherwise–is done using the
-:class:`~aioli.controller.BaseHttpController` class.
-
+The :class:`~aioli.controller.BaseHttpController` is mainly for building RESTful HTTP APIs,
+and may leverage the Aioli toolkit to perform transformation, validation, request-object plucking and more.
 
 *API*
 

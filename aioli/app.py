@@ -15,7 +15,7 @@ from .datastores import MemoryStore
 
 
 class Application(Starlette):
-    """Creates an Aioli application
+    """Aioli application core
 
     :param config: Configuration dictionary
     :param units: List of units

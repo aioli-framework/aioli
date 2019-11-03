@@ -1,4 +1,4 @@
-.. _package-config-schema-example:
+.. _unit-config-schema-example:
 
 
 Unit config schema
@@ -101,7 +101,7 @@ Parse the configuration file and pass it as a Dictionary to the :class:`~aioli.A
 
    app = Application(
        config=toml.load("aioli.cfg"),
-       packages=[
+       units=[
            aioli_guestbook,
            aioli_rdbms,
        ]

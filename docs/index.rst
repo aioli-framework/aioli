@@ -1,14 +1,11 @@
 About
 =====
 
-Aioli is a Framework for building RESTful HTTP and WebSocket APIs.
-Its easy-to-use component system, which was built with emphasis on portability and composability, offers a sensible separation of application logic, data access and request/response layers.
+Aioli was created with usability, extensibility and performance in mind, and is used for building modular, fast and highly concurrent web backend applications of any size.
 
-Furthermore, it makes use of asyncio, is lightweight, and provides high performance and concurrency–especially for IO-bound workloads.
+It works with modern versions of Python (3.6+), is *event loop driven* and makes use of `asyncio <https://docs.python.org/3/library/asyncio.html>`_ with `uvloop <https://github.com/MagicStack/uvloop>`_.
 
-Note that Aioli only works with modern versions of Python (3.6+) and is *Event loop driven*, i.e. code must be `asynchronous <https://docs.python.org/3/library/asyncio.html>`_.
-
-Not in the mood for reading docs? Check out `The Guestbook Repository <https://github.com/aioli-framework/aioli-guestbook-example>`_ for a comprehensive RESTful HTTP example.
+Check out `The Guestbook Repository <https://github.com/aioli-framework/aioli-guestbook-example>`_ for a comprehensive RESTful HTTP example.
 
 .. toctree::
    :caption: Setup
@@ -18,23 +15,24 @@ Not in the mood for reading docs? Check out `The Guestbook Repository <https://g
    setup/deploy
 
 .. toctree::
-   :caption: Build
+   :caption: Develop
 
-   api/application
-   api/package
-   api/config
-   api/controller/index
-   api/service
-
-.. toctree::
-   :caption: Extensions
-
-   extensions
+   develop/application
+   develop/unit
+   develop/config
+   develop/controller/index
+   develop/service
 
 .. toctree::
-   :caption: Snippets
+   :caption: Manage
+
+   manage/cli
+   manage/shell
+
+
+.. toctree::
+   :caption: Examples
    :maxdepth: 1
 
-   examples/about
    examples/service/index
    examples/config/index

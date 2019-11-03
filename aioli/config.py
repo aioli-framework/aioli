@@ -1,6 +1,6 @@
 from os import environ as env
 
-from marshmallow import fields, post_load, schema, validate
+from marshmallow import fields, post_load, schema
 
 
 class ConfigMeta(schema.SchemaMeta):

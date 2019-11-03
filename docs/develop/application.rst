@@ -1,9 +1,7 @@
 Application
 ===========
 
-To run the Aioli application, an :class:`~aioli.Application` instance must be created.
-Its constructor expects a *list* of at least one :class:`~aioli.Unit` to be registered with the application.
-
+The :class:`~aioli.Application` constructor expects one or more :class:`~aioli.Unit` modules to be registered with the instance.
 
 .. automodule:: aioli
    :noindex:

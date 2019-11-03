@@ -9,8 +9,6 @@ or by a dictionary provided to the *config* parameter when creating the :class:`
 
 .. note::
 
-    Note!
-
     :ref:`environment-config` takes precedence over :ref:`Application Constructor <constructor-config>` config.
 
 
